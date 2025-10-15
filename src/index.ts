@@ -1,9 +1,9 @@
 import express from 'express';
 import cors from 'cors'
 import helmet from 'helmet'
-import dotenv, { config as dotenvConfig } from 'dotenv'
+import dotenv from 'dotenv'
 import healthRoutes from './plugins/features/health'
-const config = require('../config');
+import config from '../config';
 
 
 dotenv.config()
@@ -17,7 +17,7 @@ app.use(express.json()); // Parse JSON bodies
 
 
 function registerRoutes(app: express.Application) {
-  app.use('/api/v1/health', healthRoutes)
+  app.use('/api/v1', healthRoutes)
 }
 
 registerRoutes(app)
