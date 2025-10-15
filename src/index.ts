@@ -4,7 +4,7 @@ import helmet from 'helmet'
 import dotenv from 'dotenv'
 import healthRoutes from './plugins/features/health'
 import config from '../config';
-
+import logger from './utils/logger';
 
 dotenv.config()
 const app = express()
@@ -23,7 +23,7 @@ function registerRoutes(app: express.Application) {
 registerRoutes(app)
 
 app.listen(config.port, () => {
-  console.log(`Server is running on port ${config.port}`)
+  logger.info(`Server is running on port ${config.port}`)
 })
 
 export default app
