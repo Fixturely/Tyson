@@ -3,7 +3,7 @@ import app from '../../../index';
 
 jest.mock('../../../services/stripe', () => ({
 	createPaymentIntent: jest.fn(async (amount: number, currency: string) => ({
-		id: 'pi_test_123', clientSecret: 'secret', status: 'requires_payment_method'
+		id: 'pi_test_123', client_secret: 'secret', status: 'requires_payment_method'
 	})),
 	confirmPaymentIntent: jest.fn(async (id: string, pm: string) => ({
 		id: id, status: 'succeeded'

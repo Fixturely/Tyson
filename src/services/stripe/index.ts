@@ -9,7 +9,19 @@ if (!secretKey) {
 
 const stripe = new Stripe(secretKey, { apiVersion: '2023-10-16' });
 
-export async function createPaymentIntent(amountCents:number, currency='usd'){
+// Explicit return types for payment intent functions
+export interface CreatePaymentIntentResult {
+    id: string;
+    client_secret: string | null;
+    status: string;
+  }
+  export interface ConfirmPaymentIntentResult {
+    id: string;
+    status: string;
+  }
+  
+
+export async function createPaymentIntent(amountCents:number, currency='usd'): Promise<CreatePaymentIntentResult> {
     const pi = await stripe.paymentIntents.create({
         amount: amountCents,
         currency,
@@ -18,10 +30,10 @@ export async function createPaymentIntent(amountCents:number, currency='usd'){
             allow_redirects: 'never',
         },
     })
-    return {id: pi.id, clientSecret: pi.client_secret, status: pi.status}
+    return {id: pi.id, client_secret: pi.client_secret, status: pi.status}
 }
 
-export async function confirmPaymentIntent(paymentIntentId: string, paymentMethod: string = 'pm_card_visa'){
+export async function confirmPaymentIntent(paymentIntentId: string, paymentMethod: string = 'pm_card_visa'): Promise<ConfirmPaymentIntentResult> {
     const confirmed = await stripe.paymentIntents.confirm(paymentIntentId, {
         payment_method: paymentMethod,
     });
