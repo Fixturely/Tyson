@@ -7,7 +7,7 @@ import { idempotencyKeyStore } from '../../../services/idempotency/index';
 
 const router = express.Router();
 
-const stripe = new Stripe(config.stripe.secretKey, { apiVersion: '2023-10-16' });
+const stripe = new Stripe(config.stripe.secretKey, { apiVersion: config.stripe.apiVersion as Stripe.LatestApiVersion });
 
 router.post('/', (req: express.Request, res: express.Response) => {
     const sig = req.headers['stripe-signature'] as string | undefined;
@@ -18,7 +18,7 @@ router.post('/', (req: express.Request, res: express.Response) => {
    const webhookSecret = config.stripe.webhookSecret;
    if (!webhookSecret) {
     logger.error('Missing webhook secret');
-    return res.status(400).json({ error: 'Missing webhook secret' });
+    return res.status(500).json({ error: 'Internal server error' });
    }
 
    let event: Stripe.Event;

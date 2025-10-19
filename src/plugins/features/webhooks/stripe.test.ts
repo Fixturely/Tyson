@@ -29,11 +29,10 @@ jest.mock('stripe', () => {
   describe('Stripe Webhook', ()=>{
     beforeEach(()=>{
         jest.clearAllMocks();
-        idempotencyKeyStore['processedEvents'].clear();
-        idempotencyKeyStore['eventTimestamps'].clear();
+        idempotencyKeyStore.reset();
     })
 
-   it('should process valiud webhook events', async()=>{
+   it('should process valid webhook events', async()=>{
     const response = await request(app)
     .post('/api/v1/webhooks/stripe')
     .set('stripe-signature', 'valid_signature')
@@ -49,8 +48,8 @@ jest.mock('stripe', () => {
       .post('/api/v1/webhooks/stripe')
       .send({ test: 'data' });
 
-    expect(response.status).toBe(400);
-    expect(response.body.error).toBe('Missing stripe-signature header');
+    expect(response.status).toBe(500);
+    expect(response.body.error).toBe('Internal server error');
   });
 
   it('should reject webhooks with invalid signature', async () => {

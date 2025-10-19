@@ -7,7 +7,7 @@ if (!secretKey) {
   throw new Error('STRIPE_SECRET_KEY is missing');
 }
 
-const stripe = new Stripe(secretKey, { apiVersion: '2023-10-16' });
+const stripe = new Stripe(secretKey, { apiVersion: config.stripe.apiVersion as Stripe.LatestApiVersion });
 
 // Explicit return types for payment intent functions
 export interface CreatePaymentIntentResult {

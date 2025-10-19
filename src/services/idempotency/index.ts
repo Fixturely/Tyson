@@ -1,8 +1,10 @@
+// Simple in-memory idempotency key store
+// Todo - Change to Redis or DB in staging/production
 class IdempotencyKeyStore {
     private processedEvents = new Set<string>();
     private eventTimestamps = new Map<string, Date>();
 
-    // Functiont to check if event is already processed
+    // Function to check if event is already processed
     hasProcessed(eventId: string): boolean {
         return this.processedEvents.has(eventId);
     }
@@ -32,6 +34,12 @@ class IdempotencyKeyStore {
       totalProcessed: this.processedEvents.size,
       oldestEvent: this.eventTimestamps.size > 0 ? Math.min(...Array.from(this.eventTimestamps.values()).map(date => date.getTime())) : null,
     };
+  }
+
+  // For testing purposes only
+  public reset(): void {
+    this.processedEvents.clear();
+    this.eventTimestamps.clear();
   }
 }
 

@@ -2,8 +2,7 @@ import { idempotencyKeyStore } from './index';
 
 describe('Idempotency Key Store', () => {
     beforeEach(()=>{
-        idempotencyKeyStore['processedEvents'].clear();
-        idempotencyKeyStore['eventTimestamps'].clear();
+        idempotencyKeyStore.reset();
     })
 
     it('should track processed events',()=>{
