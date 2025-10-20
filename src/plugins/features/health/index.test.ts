@@ -1,5 +1,12 @@
 import request from 'supertest';
-import app from '../../../index';
+import express from 'express';
+
+// Create a minimal app for testing just the health routes
+const app = express();
+
+// Import the health router directly
+import healthRouter from './index';
+app.use('/api/v1', healthRouter);
 
 describe('Health routes', () => {
 	it('GET /api/v1/health should return OK', async () => {

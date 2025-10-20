@@ -1,6 +1,8 @@
 import request from 'supertest';
-import app from '../../../index';
+import express from 'express';
+import { createPaymentIntent, confirmPaymentIntent } from '../../../services/stripe';
 
+// Mock Stripe service
 jest.mock('../../../services/stripe', () => ({
 	createPaymentIntent: jest.fn(async (amount: number, currency: string) => ({
 		id: 'pi_test_123', client_secret: 'secret', status: 'requires_payment_method'
@@ -9,6 +11,14 @@ jest.mock('../../../services/stripe', () => ({
 		id: id, status: 'succeeded'
 	})),
 }));
+
+// Create a minimal app for testing just the payment routes
+const app = express();
+app.use(express.json());
+
+// Import the payment router directly
+import paymentRouter from './index';
+app.use('/api/v1', paymentRouter);
 
 describe('Payments routes', () => {
 	it('POST /api/v1/payments/intent should create a payment intent', async () => {
