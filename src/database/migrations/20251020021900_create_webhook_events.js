@@ -7,7 +7,7 @@ exports.up = function(knex) {
     table.string('id').primary(); // Stripe Event ID (evt_xxxxx)
     table.string('type').notNullable(); // payment_intent.succeeded, etc.
     table.string('payment_intent_id').nullable(); // Related PaymentIntent ID
-    table.json('data').notNullable(); // Full event data from Stripe
+    table.jsonb('data').notNullable(); // Full event data from Stripe
     table.boolean('processed').defaultTo(false); // Whether we've processed this event
     table.text('processing_error').nullable(); // Error message if processing failed
     table.timestamp('received_at').defaultTo(knex.fn.now());

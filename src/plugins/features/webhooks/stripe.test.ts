@@ -51,16 +51,6 @@ jest.mock('stripe', () => {
   }));
 });
 
-// Mock database service
-jest.mock('../../../services/webhooks/db', () => ({
-  webhookEventDbService: {
-    createWebhookEvent: jest.fn().mockResolvedValue(undefined),
-    markWebhookEventAsProcessed: jest.fn().mockResolvedValue(undefined),
-    getWebhookEventById: jest.fn().mockResolvedValue(null),
-    getUnprocessedEvents: jest.fn().mockResolvedValue([])
-  }
-}));
-
 describe('Stripe Webhook Handler', () => {
   beforeEach(() => {
     // Clear idempotency store

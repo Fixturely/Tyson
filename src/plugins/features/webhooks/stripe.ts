@@ -38,10 +38,11 @@ router.post('/', async (req: express.Request, res: express.Response) => {
 
     // Store webhook event in database
   try {
+    const dataObject = event.data.object as any;
     await webhookEventDbService.createWebhookEvent({
       id: event.id,
       type: event.type,
-      payment_intent_id: (event.data.object as Stripe.PaymentIntent).id,
+      payment_intent_id: dataObject.object === 'payment_intent' ? dataObject.id : dataObject.payment_intent,
       data: event.data.object,
       processed: false,
     });
