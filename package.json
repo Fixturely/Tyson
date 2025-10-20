@@ -12,7 +12,7 @@
     "db-migrate": "knex migrate:latest",
     "db-rollback": "knex migrate:rollback",
     "db-seed": "knex seed:run",
-    "localdev_bootstrap": "docker compose up -d && npm run db-migrate && npm run db-seed",
+    "localdev_bootstrap": "docker compose up -d --wait && npm run db-migrate && npm run db-seed",
     "lint:fix": "eslint src/**/*.ts --fix"
   },
   "keywords": [
