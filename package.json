@@ -9,6 +9,10 @@
     "start": "node dist/index.js",
     "test": "jest --runInBand",
     "lint": "eslint src/**/*.ts",
+    "db-migrate": "knex migrate:latest",
+    "db-rollback": "knex migrate:rollback",
+    "db-seed": "knex seed:run",
+    "localdev_bootstrap": "docker compose up -d --wait && npm run db-migrate && npm run db-seed",
     "lint:fix": "eslint src/**/*.ts --fix"
   },
   "keywords": [
@@ -26,6 +30,8 @@
     "express-rate-limit": "^7.1.5",
     "helmet": "^7.1.0",
     "joi": "^17.11.0",
+    "knex": "^3.1.0",
+    "pg": "^8.16.3",
     "stripe": "^14.7.0",
     "winston": "^3.11.0"
   },
@@ -34,6 +40,7 @@
     "@types/express": "^4.17.21",
     "@types/jest": "^29.5.8",
     "@types/node": "^20.10.0",
+    "@types/pg": "^8.15.5",
     "@types/supertest": "^6.0.3",
     "@typescript-eslint/eslint-plugin": "^6.13.1",
     "@typescript-eslint/parser": "^6.13.1",
@@ -49,3 +56,4 @@
     "node": ">=18.0.0"
   }
 }
+
