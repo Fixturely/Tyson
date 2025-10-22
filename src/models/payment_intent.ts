@@ -13,14 +13,6 @@ export type PaymentIntentData = {
     payment_method?: string;
 }
 
-export type CreatePaymentIntentData = {
-    amount: number;
-    currency: string;
-    customer_id?: string;
-    description?: string;
-    metadata?: any;
-}
-
 export class PaymentIntentModel {
     async createPaymentIntent(paymentIntentData: PaymentIntentData): Promise<void> {
         try {
@@ -55,7 +47,7 @@ export class PaymentIntentModel {
         try {
             const results = await db('payment_intents')
                 .where('customer_id', customerId)
-                .orderBy('created_at', 'desc')
+                .orderBy('created', 'desc')
                 .limit(limit)
                 .offset(offset);
             return results;
@@ -69,7 +61,7 @@ export class PaymentIntentModel {
         try {
             const results = await db('payment_intents')
                 .where('status', status)
-                .orderBy('created_at', 'desc')
+                .orderBy('created', 'desc')
                 .limit(limit)
                 .offset(offset);
             return results;
@@ -82,7 +74,7 @@ export class PaymentIntentModel {
     async getAllPaymentIntents(limit: number = 50, offset: number = 0): Promise<PaymentIntentData[]> {
         try {
             const results = await db('payment_intents')
-                .orderBy('created_at', 'desc')
+                .orderBy('created', 'desc')
                 .limit(limit)
                 .offset(offset);
             return results;

@@ -233,7 +233,7 @@ describe('PaymentIntentModel', () => {
 
       expect(mockDb).toHaveBeenCalledWith('payment_intents');
       expect(mockQueryBuilder.where).toHaveBeenCalledWith('customer_id', customerId);
-      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith('created_at', 'desc');
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith('created', 'desc');
       expect(mockQueryBuilder.limit).toHaveBeenCalledWith(50);
       expect(mockQueryBuilder.offset).toHaveBeenCalledWith(0);
       expect(result).toEqual(mockPaymentIntents);
@@ -290,7 +290,7 @@ describe('PaymentIntentModel', () => {
 
       expect(mockDb).toHaveBeenCalledWith('payment_intents');
       expect(mockQueryBuilder.where).toHaveBeenCalledWith('status', status);
-      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith('created_at', 'desc');
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith('created', 'desc');
       expect(mockQueryBuilder.limit).toHaveBeenCalledWith(50);
       expect(mockQueryBuilder.offset).toHaveBeenCalledWith(0);
       expect(result).toEqual(mockPaymentIntents);
@@ -330,7 +330,7 @@ describe('PaymentIntentModel', () => {
       const result = await model.getAllPaymentIntents();
 
       expect(mockDb).toHaveBeenCalledWith('payment_intents');
-      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith('created_at', 'desc');
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith('created', 'desc');
       expect(mockQueryBuilder.limit).toHaveBeenCalledWith(50);
       expect(mockQueryBuilder.offset).toHaveBeenCalledWith(0);
       expect(result).toEqual(mockPaymentIntents);

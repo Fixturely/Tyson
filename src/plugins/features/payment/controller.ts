@@ -7,7 +7,7 @@ import { createPaymentIntentData, updatePaymentIntentData } from "./helper";
 export async function createPaymentIntentController(req: Request, res: Response) {
     try {
         const { amount, currency } = req.body;
-        const result = await createPaymentIntent(amount, currency || 'usd');
+        const result = await createPaymentIntent(amount, currency);
         const paymentIntentData = createPaymentIntentData(result);
         await paymentIntentModel.createPaymentIntent(paymentIntentData);
         return res.json(result);

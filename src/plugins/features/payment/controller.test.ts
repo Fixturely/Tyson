@@ -97,7 +97,8 @@ describe('Payment Controller', () => {
 
     it('should create a payment intent with default currency', async () => {
       // Arrange
-      const requestBody = { amount: 3000 };
+      // Simulate validation middleware behavior - Joi sets default currency
+      const requestBody = { amount: 3000, currency: 'usd' };
       const stripeResult = {
         id: 'pi_test_456',
         amount: 3000,
