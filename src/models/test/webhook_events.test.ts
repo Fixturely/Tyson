@@ -1,5 +1,5 @@
-import { WebhookEventDbService } from './db';
-import { WebhookEventData } from './types';
+import { WebhookEventDbService } from '../webhook_events';
+import { WebhookEventData } from '../webhook_events';
 
 // Mock the database module - Knex instance that returns query builders
 jest.mock('../../services/database', () => {

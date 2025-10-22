@@ -1,6 +1,15 @@
-import db from '../../services/database';
-import logger from '../../utils/logger';
-import { WebhookEventData } from './types';
+import db from '../services/database';
+import logger from '../utils/logger';
+
+export interface WebhookEventData {
+    id: string;
+    type: string;
+    payment_intent_id?: string;
+    data: any;
+    processed?: boolean;
+    processingError?: string;
+}
+
 
 
 export class WebhookEventDbService {

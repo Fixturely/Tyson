@@ -1,14 +1,36 @@
 import request from 'supertest';
 import express from 'express';
-import { createPaymentIntent, confirmPaymentIntent } from '../../../services/stripe';
+
+// Mock database service
+jest.mock('../../../services/database', () => {
+  const mockQueryBuilder = {
+    insert: jest.fn().mockResolvedValue([1]),
+    where: jest.fn().mockReturnThis(),
+    update: jest.fn().mockResolvedValue(1),
+    first: jest.fn().mockResolvedValue(null),
+    orderBy: jest.fn().mockResolvedValue([]),
+  };
+
+  return {
+    __esModule: true,
+    default: jest.fn(() => mockQueryBuilder),
+  };
+});
 
 // Mock Stripe service
 jest.mock('../../../services/stripe', () => ({
 	createPaymentIntent: jest.fn(async (amount: number, currency: string) => ({
-		id: 'pi_test_123', client_secret: 'secret', status: 'requires_payment_method'
+		id: 'pi_test_123', 
+		amount: amount,
+		currency: currency,
+		client_secret: 'secret', 
+		status: 'requires_payment_method'
 	})),
 	confirmPaymentIntent: jest.fn(async (id: string, pm: string) => ({
-		id: id, status: 'succeeded'
+		id: id, 
+		amount: 5000,
+		currency: 'usd',
+		status: 'succeeded'
 	})),
 }));
 

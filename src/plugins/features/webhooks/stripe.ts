@@ -3,7 +3,7 @@ import Stripe from 'stripe';
 import logger from '../../../utils/logger';
 import config from '../../../../config';
 import { idempotencyKeyStore } from '../../../services/idempotency/index';
-import { webhookEventDbService } from '../../../services/webhooks/db';
+import { webhookEventDbService } from '../../../models/webhook_events';
 
 
 const router = express.Router();
@@ -37,11 +37,11 @@ router.post('/', async (req: express.Request, res: express.Response) => {
    }
 
     // Store webhook event in database
-  try {
+   try {
     const dataObject = event.data.object as any;
     await webhookEventDbService.createWebhookEvent({
-      id: event.id,
-      type: event.type,
+           id: event.id,
+           type: event.type,
       payment_intent_id: dataObject.object === 'payment_intent' ? dataObject.id : dataObject.payment_intent,
       data: event.data.object,
       processed: false,
@@ -49,10 +49,10 @@ router.post('/', async (req: express.Request, res: express.Response) => {
   } catch (error) {
     logger.error('Failed to store webhook event', { eventId: event.id, error });
     // Continue processing even if storage fails
-  }
+   }
 
    try{
-    switch(event.type){
+       switch(event.type){
         // Payment Intent Events
         case 'payment_intent.created':
             const paymentIntentCreated = event.data.object as Stripe.PaymentIntent;
@@ -65,18 +65,18 @@ router.post('/', async (req: express.Request, res: express.Response) => {
             // TODO: Store PaymentIntent in database
             break;
 
-        case 'payment_intent.succeeded':
-            const paymentIntentSucceeded = event.data.object as Stripe.PaymentIntent;
+           case 'payment_intent.succeeded':
+               const paymentIntentSucceeded = event.data.object as Stripe.PaymentIntent;
             logger.info('Payment intent succeeded', { 
                 id: paymentIntentSucceeded.id,
                 amount: paymentIntentSucceeded.amount,
                 currency: paymentIntentSucceeded.currency
             });
             // TODO: Update PaymentIntent status, fulfill order, send confirmation
-            break;
+               break;
 
-        case 'payment_intent.payment_failed':
-            const paymentIntentFailed = event.data.object as Stripe.PaymentIntent;
+           case 'payment_intent.payment_failed':
+               const paymentIntentFailed = event.data.object as Stripe.PaymentIntent;
             logger.warn('Payment intent failed', { 
                 id: paymentIntentFailed.id,
                 error: paymentIntentFailed.last_payment_error?.message,
@@ -206,19 +206,19 @@ router.post('/', async (req: express.Request, res: express.Response) => {
                 refunds: chargeRefunded.refunds?.data?.length
             });
             // TODO: Update refund status, process refund
-            break;
+               break;
 
         // Default case for unhandled events
-        default:
+           default:
             logger.info('Unhandled event type', { 
                 type: event.type,
                 eventId: event.id
             });
-            break;
-    }
+               break;
+   }
 
     // Mark event as processed
-    await webhookEventDbService.markWebhookEventAsProcessed(event.id);
+       await webhookEventDbService.markWebhookEventAsProcessed(event.id);
     idempotencyKeyStore.markProcessed(event.id);
     return res.status(200).json({ message: 'Webhook received' });
    } catch (error) {
@@ -232,16 +232,16 @@ router.post('/', async (req: express.Request, res: express.Response) => {
 
 // Stats endpoint for monitoring
 router.get('/stats', (req, res) => {
-  try {
-    const stats = idempotencyKeyStore.getStats();
+    try {
+        const stats = idempotencyKeyStore.getStats();
     res.json({
-      idempotency: stats,
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
+            idempotency: stats,
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
     logger.error('Failed to get webhook stats', { error });
     res.status(500).json({ error: 'Failed to get stats' });
-  }
+    }
 });
 
 export default router;
