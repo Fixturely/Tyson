@@ -1,5 +1,8 @@
 import { createPaymentIntentData, updatePaymentIntentData } from './helper';
-import { CreatePaymentIntentResult, ConfirmPaymentIntentResult } from '../../../services/stripe';
+import {
+  CreatePaymentIntentResult,
+  ConfirmPaymentIntentResult,
+} from '../../../services/stripe';
 import { PaymentIntentData } from '../../../models/payment_intent';
 
 describe('Payment Helper Functions', () => {
@@ -16,7 +19,7 @@ describe('Payment Helper Functions', () => {
         description: 'Test payment intent',
         metadata: { order_id: 'order_123', source: 'web' },
         created: 1640995200,
-        payment_method: 'pm_test_123'
+        payment_method: 'pm_test_123',
       };
 
       // Act
@@ -33,7 +36,7 @@ describe('Payment Helper Functions', () => {
         metadata: { order_id: 'order_123', source: 'web' },
         client_secret: 'pi_test_123_secret',
         created: 1640995200,
-        payment_method: 'pm_test_123'
+        payment_method: 'pm_test_123',
       });
     });
 
@@ -45,7 +48,7 @@ describe('Payment Helper Functions', () => {
         currency: 'eur',
         client_secret: 'pi_test_456_secret',
         status: 'requires_payment_method',
-        created: 1640995200
+        created: 1640995200,
       };
 
       // Act
@@ -58,7 +61,7 @@ describe('Payment Helper Functions', () => {
         currency: 'eur',
         status: 'requires_payment_method',
         client_secret: 'pi_test_456_secret',
-        created: 1640995200
+        created: 1640995200,
       });
     });
 
@@ -74,7 +77,7 @@ describe('Payment Helper Functions', () => {
         description: null,
         metadata: null,
         created: 1640995200,
-        payment_method: null
+        payment_method: null,
       };
 
       // Act
@@ -86,7 +89,7 @@ describe('Payment Helper Functions', () => {
         amount: 2000,
         currency: 'gbp',
         status: 'requires_payment_method',
-        created: 1640995200
+        created: 1640995200,
       });
     });
 
@@ -98,7 +101,7 @@ describe('Payment Helper Functions', () => {
         currency: 'cad',
         client_secret: 'pi_test_999_secret',
         status: 'requires_payment_method',
-        created: 1640995200
+        created: 1640995200,
       };
 
       // Act
@@ -111,7 +114,7 @@ describe('Payment Helper Functions', () => {
         currency: 'cad',
         status: 'requires_payment_method',
         client_secret: 'pi_test_999_secret',
-        created: 1640995200
+        created: 1640995200,
       });
     });
 
@@ -124,7 +127,7 @@ describe('Payment Helper Functions', () => {
         client_secret: 'pi_test_empty_secret',
         status: 'requires_payment_method',
         metadata: {},
-        created: 1640995200
+        created: 1640995200,
       };
 
       // Act
@@ -138,7 +141,7 @@ describe('Payment Helper Functions', () => {
         status: 'requires_payment_method',
         metadata: {},
         client_secret: 'pi_test_empty_secret',
-        created: 1640995200
+        created: 1640995200,
       });
     });
 
@@ -157,10 +160,10 @@ describe('Payment Helper Functions', () => {
           pricing: {
             subtotal: 7000,
             tax: 500,
-            total: 7500
-          }
+            total: 7500,
+          },
         },
-        created: 1640995200
+        created: 1640995200,
       };
 
       // Act
@@ -179,11 +182,11 @@ describe('Payment Helper Functions', () => {
           pricing: {
             subtotal: 7000,
             tax: 500,
-            total: 7500
-          }
+            total: 7500,
+          },
         },
         client_secret: 'pi_test_complex_secret',
-        created: 1640995200
+        created: 1640995200,
       });
     });
   });
@@ -201,7 +204,7 @@ describe('Payment Helper Functions', () => {
         description: 'Test payment intent',
         metadata: { order_id: 'order_123', source: 'web' },
         created: 1640995200,
-        payment_method: 'pm_card_visa'
+        payment_method: 'pm_card_visa',
       };
 
       // Act
@@ -218,7 +221,7 @@ describe('Payment Helper Functions', () => {
         metadata: { order_id: 'order_123', source: 'web' },
         client_secret: 'pi_test_123_secret',
         created: 1640995200,
-        payment_method: 'pm_card_visa'
+        payment_method: 'pm_card_visa',
       });
     });
 
@@ -230,7 +233,7 @@ describe('Payment Helper Functions', () => {
         currency: 'eur',
         client_secret: 'pi_test_456_secret',
         status: 'succeeded',
-        created: 1640995200
+        created: 1640995200,
       };
 
       // Act
@@ -243,7 +246,7 @@ describe('Payment Helper Functions', () => {
         currency: 'eur',
         status: 'succeeded',
         client_secret: 'pi_test_456_secret',
-        created: 1640995200
+        created: 1640995200,
       });
     });
 
@@ -259,7 +262,7 @@ describe('Payment Helper Functions', () => {
         description: 'Failed payment',
         metadata: { error: 'card_declined' },
         created: 1640995200,
-        payment_method: 'pm_card_declined'
+        payment_method: 'pm_card_declined',
       };
 
       // Act
@@ -276,7 +279,7 @@ describe('Payment Helper Functions', () => {
         metadata: { error: 'card_declined' },
         client_secret: 'pi_test_failed_secret',
         created: 1640995200,
-        payment_method: 'pm_card_declined'
+        payment_method: 'pm_card_declined',
       });
     });
 
@@ -292,7 +295,7 @@ describe('Payment Helper Functions', () => {
         description: 'Canceled payment',
         metadata: { reason: 'user_canceled' },
         created: 1640995200,
-        payment_method: null
+        payment_method: null,
       };
 
       // Act
@@ -308,7 +311,7 @@ describe('Payment Helper Functions', () => {
         description: 'Canceled payment',
         metadata: { reason: 'user_canceled' },
         client_secret: 'pi_test_canceled_secret',
-        created: 1640995200
+        created: 1640995200,
       });
     });
 
@@ -324,7 +327,7 @@ describe('Payment Helper Functions', () => {
         description: null,
         metadata: null,
         created: 1640995200,
-        payment_method: null
+        payment_method: null,
       };
 
       // Act
@@ -336,22 +339,33 @@ describe('Payment Helper Functions', () => {
         amount: 2500,
         currency: 'aud',
         status: 'processing',
-        created: 1640995200
+        created: 1640995200,
       });
     });
 
     it('should handle different currency formats', () => {
       // Arrange
-      const currencies = ['usd', 'eur', 'gbp', 'jpy', 'cad', 'aud', 'chf', 'sek', 'nok', 'dkk'];
-      
+      const currencies = [
+        'usd',
+        'eur',
+        'gbp',
+        'jpy',
+        'cad',
+        'aud',
+        'chf',
+        'sek',
+        'nok',
+        'dkk',
+      ];
+
       currencies.forEach((currency, index) => {
         const stripeResult: ConfirmPaymentIntentResult = {
           id: `pi_test_${currency}`,
-          amount: 1000 + (index * 100),
+          amount: 1000 + index * 100,
           currency: currency,
           client_secret: `pi_test_${currency}_secret`,
           status: 'succeeded',
-          created: 1640995200
+          created: 1640995200,
         };
 
         // Act
@@ -359,7 +373,7 @@ describe('Payment Helper Functions', () => {
 
         // Assert
         expect(result.currency).toBe(currency);
-        expect(result.amount).toBe(1000 + (index * 100));
+        expect(result.amount).toBe(1000 + index * 100);
         expect(result.id).toBe(`pi_test_${currency}`);
       });
     });
@@ -378,10 +392,10 @@ describe('Payment Helper Functions', () => {
           number: 42,
           boolean: true,
           array: [1, 2, 3],
-          nested: { key: 'value' }
+          nested: { key: 'value' },
         },
         created: 1640995200,
-        payment_method: 'pm_test_types'
+        payment_method: 'pm_test_types',
       };
 
       // Act
@@ -397,12 +411,12 @@ describe('Payment Helper Functions', () => {
       expect(typeof result.metadata).toBe('object');
       expect(typeof result.created).toBe('number');
       expect(typeof result.payment_method).toBe('string');
-      
+
       expect(result.metadata).toEqual({
         number: 42,
         boolean: true,
         array: [1, 2, 3],
-        nested: { key: 'value' }
+        nested: { key: 'value' },
       });
     });
   });

@@ -35,7 +35,7 @@ describe('WebhookEventDbService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     service = new WebhookEventDbService();
-    
+
     // Get references to the mocked functions
     mockDb = require('../../services/database').default;
     mockQueryBuilder = mockDb();
@@ -56,7 +56,7 @@ describe('WebhookEventDbService', () => {
 
       // Verify database was called with correct table name
       expect(mockDb).toHaveBeenCalledWith('webhook_events');
-      
+
       // Verify insert was called with correct data
       expect(mockQueryBuilder.insert).toHaveBeenCalledWith({
         id: eventData.id,
@@ -69,7 +69,9 @@ describe('WebhookEventDbService', () => {
       });
 
       // Verify logger was called
-      expect(mockLogger.info).toHaveBeenCalledWith(`Webhook event created: ${eventData.id}`);
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        `Webhook event created: ${eventData.id}`
+      );
     });
 
     it('should handle database errors and log them', async () => {
@@ -82,10 +84,14 @@ describe('WebhookEventDbService', () => {
       const dbError = new Error('Database connection failed');
       mockQueryBuilder.insert.mockRejectedValueOnce(dbError);
 
-      await expect(service.createWebhookEvent(eventData)).rejects.toThrow('Database connection failed');
-      
+      await expect(service.createWebhookEvent(eventData)).rejects.toThrow(
+        'Database connection failed'
+      );
+
       // Verify error was logged
-      expect(mockLogger.error).toHaveBeenCalledWith(`Error creating webhook event: ${dbError}`);
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        `Error creating webhook event: ${dbError}`
+      );
     });
 
     it('should create webhook event without payment_intent_id', async () => {
@@ -123,7 +129,9 @@ describe('WebhookEventDbService', () => {
         processed_at: expect.any(Date),
         processing_error: null,
       });
-      expect(mockLogger.info).toHaveBeenCalledWith(`Webhook event marked as processed: ${eventId}`);
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        `Webhook event marked as processed: ${eventId}`
+      );
     });
 
     it('should mark event as processed with error message', async () => {
@@ -144,8 +152,12 @@ describe('WebhookEventDbService', () => {
       const dbError = new Error('Update failed');
       mockQueryBuilder.update.mockRejectedValueOnce(dbError);
 
-      await expect(service.markWebhookEventAsProcessed(eventId)).rejects.toThrow('Update failed');
-      expect(mockLogger.error).toHaveBeenCalledWith(`Error marking webhook event as processed: ${dbError}`);
+      await expect(
+        service.markWebhookEventAsProcessed(eventId)
+      ).rejects.toThrow('Update failed');
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        `Error marking webhook event as processed: ${dbError}`
+      );
     });
   });
 
@@ -186,8 +198,12 @@ describe('WebhookEventDbService', () => {
       const dbError = new Error('Query failed');
       mockQueryBuilder.first.mockRejectedValueOnce(dbError);
 
-      await expect(service.getWebhookEventById(eventId)).rejects.toThrow('Query failed');
-      expect(mockLogger.error).toHaveBeenCalledWith(`Error getting webhook event by id: ${dbError}`);
+      await expect(service.getWebhookEventById(eventId)).rejects.toThrow(
+        'Query failed'
+      );
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        `Error getting webhook event by id: ${dbError}`
+      );
     });
   });
 
@@ -218,7 +234,10 @@ describe('WebhookEventDbService', () => {
 
       expect(mockDb).toHaveBeenCalledWith('webhook_events');
       expect(mockQueryBuilder.where).toHaveBeenCalledWith('processed', false);
-      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith('received_at', 'asc');
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith(
+        'received_at',
+        'asc'
+      );
       expect(result).toEqual(mockEvents);
     });
 
@@ -228,7 +247,10 @@ describe('WebhookEventDbService', () => {
       const result = await service.getUnprocessedEvents();
 
       expect(mockQueryBuilder.where).toHaveBeenCalledWith('processed', false);
-      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith('received_at', 'asc');
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith(
+        'received_at',
+        'asc'
+      );
       expect(result).toEqual([]);
     });
 
@@ -236,10 +258,15 @@ describe('WebhookEventDbService', () => {
       const dbError = new Error('Query failed');
       mockQueryBuilder.orderBy.mockRejectedValueOnce(dbError);
 
-      await expect(service.getUnprocessedEvents()).rejects.toThrow('Query failed');
-      expect(mockLogger.error).toHaveBeenCalledWith('Failed to get unprocessed events', {
-        error: 'Query failed'
-      });
+      await expect(service.getUnprocessedEvents()).rejects.toThrow(
+        'Query failed'
+      );
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Failed to get unprocessed events',
+        {
+          error: 'Query failed',
+        }
+      );
     });
   });
 });

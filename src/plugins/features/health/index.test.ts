@@ -9,11 +9,9 @@ import healthRouter from './index';
 app.use('/api/v1', healthRouter);
 
 describe('Health routes', () => {
-	it('GET /api/v1/health should return OK', async () => {
-		const res = await request(app).get('/api/v1/health');
-		expect(res.status).toBe(200);
-		expect(res.body.status).toBe('OK');
-	});
+  it('GET /api/v1/health should return OK', async () => {
+    const res = await request(app).get('/api/v1/health');
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe('OK');
+  });
 });
-
-

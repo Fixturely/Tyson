@@ -9,8 +9,8 @@ jest.mock('../../../services/database', () => ({
     where: jest.fn().mockReturnThis(),
     insert: jest.fn().mockReturnThis(),
     update: jest.fn().mockReturnThis(),
-    returning: jest.fn().mockResolvedValue([])
-  }
+    returning: jest.fn().mockResolvedValue([]),
+  },
 }));
 
 // Mock webhook database service
@@ -19,11 +19,11 @@ jest.mock('../../../models/webhook_events', () => ({
     createWebhookEvent: jest.fn().mockResolvedValue(undefined),
     markWebhookEventAsProcessed: jest.fn().mockResolvedValue(undefined),
     getWebhookEventById: jest.fn().mockResolvedValue(null),
-    getUnprocessedEvents: jest.fn().mockResolvedValue([])
-  }
+    getUnprocessedEvents: jest.fn().mockResolvedValue([]),
+  },
 }));
 
-import { webhookEventDbService } from '../../../models/webhook_events'
+import { webhookEventDbService } from '../../../models/webhook_events';
 import app from '../../../index';
 
 // Mock Stripe webhook verification
@@ -40,14 +40,14 @@ jest.mock('stripe', () => {
                 id: 'pi_test_123',
                 amount: 2000,
                 currency: 'usd',
-                status: 'succeeded'
-              }
-            }
+                status: 'succeeded',
+              },
+            },
           };
         }
         throw new Error('Invalid signature');
-      })
-    }
+      }),
+    },
   }));
 });
 
@@ -56,7 +56,7 @@ describe('Stripe Webhook Handler', () => {
     // Clear idempotency store
     idempotencyKeyStore['processedEvents'].clear();
     idempotencyKeyStore['eventTimestamps'].clear();
-    
+
     // Clear mocks
     jest.clearAllMocks();
   });
@@ -71,7 +71,9 @@ describe('Stripe Webhook Handler', () => {
       expect(response.status).toBe(200);
       expect(response.body.message).toBe('Webhook received');
       expect(webhookEventDbService.createWebhookEvent).toHaveBeenCalled();
-      expect(webhookEventDbService.markWebhookEventAsProcessed).toHaveBeenCalled();
+      expect(
+        webhookEventDbService.markWebhookEventAsProcessed
+      ).toHaveBeenCalled();
     });
 
     it('should reject webhooks without signature', async () => {
@@ -155,7 +157,7 @@ describe('Stripe Webhook Handler', () => {
       expect(webhookEventDbService.createWebhookEvent).toHaveBeenCalledWith(
         expect.objectContaining({
           id: 'evt_test_123',
-          type: 'payment_intent.succeeded'
+          type: 'payment_intent.succeeded',
         })
       );
     });
@@ -167,8 +169,7 @@ describe('Stripe Webhook Handler', () => {
       idempotencyKeyStore.markProcessed('evt_1');
       idempotencyKeyStore.markProcessed('evt_2');
 
-      const response = await request(app)
-        .get('/api/v1/webhooks/stripe/stats');
+      const response = await request(app).get('/api/v1/webhooks/stripe/stats');
 
       expect(response.status).toBe(200);
       expect(response.body.idempotency.totalProcessed).toBe(2);

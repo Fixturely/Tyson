@@ -18,15 +18,34 @@ jest.mock('../../../utils/logger', () => ({
 }));
 
 import { Request, Response } from 'express';
-import { createPaymentIntentController, confirmPaymentIntentController } from './controller';
-import { createPaymentIntent, confirmPaymentIntent } from '../../../services/stripe';
+import {
+  createPaymentIntentController,
+  confirmPaymentIntentController,
+} from './controller';
+import {
+  createPaymentIntent,
+  confirmPaymentIntent,
+} from '../../../services/stripe';
 import { paymentIntentModel } from '../../../models/payment_intent';
 import logger from '../../../utils/logger';
 
-const mockCreatePaymentIntent = createPaymentIntent as unknown as jest.MockedFunction<typeof createPaymentIntent>;
-const mockConfirmPaymentIntent = confirmPaymentIntent as unknown as jest.MockedFunction<typeof confirmPaymentIntent>;
-const mockPaymentIntentModel = paymentIntentModel as unknown as { createPaymentIntent: jest.Mock; updatePaymentIntent: jest.Mock };
-const mockLogger = logger as unknown as { error: jest.Mock; info: jest.Mock; warn: jest.Mock };
+const mockCreatePaymentIntent =
+  createPaymentIntent as unknown as jest.MockedFunction<
+    typeof createPaymentIntent
+  >;
+const mockConfirmPaymentIntent =
+  confirmPaymentIntent as unknown as jest.MockedFunction<
+    typeof confirmPaymentIntent
+  >;
+const mockPaymentIntentModel = paymentIntentModel as unknown as {
+  createPaymentIntent: jest.Mock;
+  updatePaymentIntent: jest.Mock;
+};
+const mockLogger = logger as unknown as {
+  error: jest.Mock;
+  info: jest.Mock;
+  warn: jest.Mock;
+};
 
 describe('Payment Controller', () => {
   let mockRequest: Partial<Request>;
@@ -37,15 +56,15 @@ describe('Payment Controller', () => {
   beforeEach(() => {
     mockJson = jest.fn().mockReturnThis();
     mockStatus = jest.fn().mockReturnThis();
-    
+
     mockRequest = {
       body: {},
-      params: {}
+      params: {},
     };
-    
+
     mockResponse = {
       json: mockJson,
-      status: mockStatus
+      status: mockStatus,
     };
 
     // Clear all mocks
@@ -66,7 +85,7 @@ describe('Payment Controller', () => {
         description: 'Test payment',
         metadata: { order_id: 'order_123' },
         created: 1640995200,
-        payment_method: 'pm_test_123'
+        payment_method: 'pm_test_123',
       };
 
       mockRequest.body = requestBody;
@@ -74,7 +93,10 @@ describe('Payment Controller', () => {
       mockPaymentIntentModel.createPaymentIntent.mockResolvedValue(undefined);
 
       // Act
-      await createPaymentIntentController(mockRequest as Request, mockResponse as Response);
+      await createPaymentIntentController(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       // Assert
       expect(mockCreatePaymentIntent).toHaveBeenCalledWith(5000, 'usd');
@@ -88,7 +110,7 @@ describe('Payment Controller', () => {
           description: 'Test payment',
           metadata: { order_id: 'order_123' },
           created: 1640995200,
-          payment_method: 'pm_test_123'
+          payment_method: 'pm_test_123',
         })
       );
       expect(mockJson).toHaveBeenCalledWith(stripeResult);
@@ -105,7 +127,7 @@ describe('Payment Controller', () => {
         currency: 'usd',
         client_secret: 'pi_test_456_secret',
         status: 'requires_payment_method',
-        created: 1640995200
+        created: 1640995200,
       };
 
       mockRequest.body = requestBody;
@@ -113,7 +135,10 @@ describe('Payment Controller', () => {
       mockPaymentIntentModel.createPaymentIntent.mockResolvedValue(undefined);
 
       // Act
-      await createPaymentIntentController(mockRequest as Request, mockResponse as Response);
+      await createPaymentIntentController(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       // Assert
       expect(mockCreatePaymentIntent).toHaveBeenCalledWith(3000, 'usd');
@@ -129,7 +154,10 @@ describe('Payment Controller', () => {
       mockCreatePaymentIntent.mockRejectedValue(stripeError);
 
       // Act
-      await createPaymentIntentController(mockRequest as Request, mockResponse as Response);
+      await createPaymentIntentController(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       // Assert
       expect(mockLogger.error).toHaveBeenCalledWith(
@@ -137,7 +165,9 @@ describe('Payment Controller', () => {
         { error: stripeError }
       );
       expect(mockStatus).toHaveBeenCalledWith(500);
-      expect(mockJson).toHaveBeenCalledWith({ error: 'Failed to create payment intent' });
+      expect(mockJson).toHaveBeenCalledWith({
+        error: 'Failed to create payment intent',
+      });
     });
 
     it('should handle database errors gracefully', async () => {
@@ -149,7 +179,7 @@ describe('Payment Controller', () => {
         currency: 'usd',
         client_secret: 'pi_test_123_secret',
         status: 'requires_payment_method',
-        created: 1640995200
+        created: 1640995200,
       };
       const dbError = new Error('Database connection failed');
 
@@ -158,7 +188,10 @@ describe('Payment Controller', () => {
       mockPaymentIntentModel.createPaymentIntent.mockRejectedValue(dbError);
 
       // Act
-      await createPaymentIntentController(mockRequest as Request, mockResponse as Response);
+      await createPaymentIntentController(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       // Assert
       expect(mockLogger.error).toHaveBeenCalledWith(
@@ -166,7 +199,9 @@ describe('Payment Controller', () => {
         { error: dbError }
       );
       expect(mockStatus).toHaveBeenCalledWith(500);
-      expect(mockJson).toHaveBeenCalledWith({ error: 'Failed to create payment intent' });
+      expect(mockJson).toHaveBeenCalledWith({
+        error: 'Failed to create payment intent',
+      });
     });
 
     it('should handle missing amount in request body', async () => {
@@ -178,7 +213,10 @@ describe('Payment Controller', () => {
       mockCreatePaymentIntent.mockRejectedValue(stripeError);
 
       // Act
-      await createPaymentIntentController(mockRequest as Request, mockResponse as Response);
+      await createPaymentIntentController(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       // Assert
       expect(mockLogger.error).toHaveBeenCalledWith(
@@ -186,7 +224,9 @@ describe('Payment Controller', () => {
         { error: stripeError }
       );
       expect(mockStatus).toHaveBeenCalledWith(500);
-      expect(mockJson).toHaveBeenCalledWith({ error: 'Failed to create payment intent' });
+      expect(mockJson).toHaveBeenCalledWith({
+        error: 'Failed to create payment intent',
+      });
     });
   });
 
@@ -205,7 +245,7 @@ describe('Payment Controller', () => {
         description: 'Test payment',
         metadata: { order_id: 'order_123' },
         created: 1640995200,
-        payment_method: 'pm_card_visa'
+        payment_method: 'pm_card_visa',
       };
 
       mockRequest.params = requestParams;
@@ -214,10 +254,16 @@ describe('Payment Controller', () => {
       mockPaymentIntentModel.updatePaymentIntent.mockResolvedValue(undefined);
 
       // Act
-      await confirmPaymentIntentController(mockRequest as Request, mockResponse as Response);
+      await confirmPaymentIntentController(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       // Assert
-      expect(mockConfirmPaymentIntent).toHaveBeenCalledWith('pi_test_123', 'pm_card_visa');
+      expect(mockConfirmPaymentIntent).toHaveBeenCalledWith(
+        'pi_test_123',
+        'pm_card_visa'
+      );
       expect(mockPaymentIntentModel.updatePaymentIntent).toHaveBeenCalledWith(
         expect.objectContaining({
           id: 'pi_test_123',
@@ -228,7 +274,7 @@ describe('Payment Controller', () => {
           description: 'Test payment',
           metadata: { order_id: 'order_123' },
           created: 1640995200,
-          payment_method: 'pm_card_visa'
+          payment_method: 'pm_card_visa',
         })
       );
       expect(mockJson).toHaveBeenCalledWith(stripeResult);
@@ -245,7 +291,7 @@ describe('Payment Controller', () => {
         currency: 'usd',
         client_secret: 'pi_test_123_secret',
         status: 'succeeded',
-        created: 1640995200
+        created: 1640995200,
       };
 
       mockRequest.params = requestParams;
@@ -254,10 +300,16 @@ describe('Payment Controller', () => {
       mockPaymentIntentModel.updatePaymentIntent.mockResolvedValue(undefined);
 
       // Act
-      await confirmPaymentIntentController(mockRequest as Request, mockResponse as Response);
+      await confirmPaymentIntentController(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       // Assert
-      expect(mockConfirmPaymentIntent).toHaveBeenCalledWith('pi_test_123', 'pm_card_visa');
+      expect(mockConfirmPaymentIntent).toHaveBeenCalledWith(
+        'pi_test_123',
+        'pm_card_visa'
+      );
       expect(mockJson).toHaveBeenCalledWith(stripeResult);
     });
 
@@ -270,11 +322,16 @@ describe('Payment Controller', () => {
       mockRequest.body = requestBody;
 
       // Act
-      await confirmPaymentIntentController(mockRequest as Request, mockResponse as Response);
+      await confirmPaymentIntentController(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       // Assert
       expect(mockStatus).toHaveBeenCalledWith(400);
-      expect(mockJson).toHaveBeenCalledWith({ error: 'payment_intent id is required' });
+      expect(mockJson).toHaveBeenCalledWith({
+        error: 'payment_intent id is required',
+      });
       expect(mockConfirmPaymentIntent).not.toHaveBeenCalled();
     });
 
@@ -289,7 +346,10 @@ describe('Payment Controller', () => {
       mockConfirmPaymentIntent.mockRejectedValue(stripeError);
 
       // Act
-      await confirmPaymentIntentController(mockRequest as Request, mockResponse as Response);
+      await confirmPaymentIntentController(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       // Assert
       expect(mockLogger.error).toHaveBeenCalledWith(
@@ -297,7 +357,9 @@ describe('Payment Controller', () => {
         { error: stripeError }
       );
       expect(mockStatus).toHaveBeenCalledWith(500);
-      expect(mockJson).toHaveBeenCalledWith({ error: 'Failed to confirm payment intent' });
+      expect(mockJson).toHaveBeenCalledWith({
+        error: 'Failed to confirm payment intent',
+      });
     });
 
     it('should handle database update errors', async () => {
@@ -310,7 +372,7 @@ describe('Payment Controller', () => {
         currency: 'usd',
         client_secret: 'pi_test_123_secret',
         status: 'succeeded',
-        created: 1640995200
+        created: 1640995200,
       };
       const dbError = new Error('Database update failed');
 
@@ -320,7 +382,10 @@ describe('Payment Controller', () => {
       mockPaymentIntentModel.updatePaymentIntent.mockRejectedValue(dbError);
 
       // Act
-      await confirmPaymentIntentController(mockRequest as Request, mockResponse as Response);
+      await confirmPaymentIntentController(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       // Assert
       expect(mockLogger.error).toHaveBeenCalledWith(
@@ -328,7 +393,9 @@ describe('Payment Controller', () => {
         { error: dbError }
       );
       expect(mockStatus).toHaveBeenCalledWith(500);
-      expect(mockJson).toHaveBeenCalledWith({ error: 'Failed to confirm payment intent' });
+      expect(mockJson).toHaveBeenCalledWith({
+        error: 'Failed to confirm payment intent',
+      });
     });
 
     it('should handle invalid payment intent id', async () => {
@@ -342,7 +409,10 @@ describe('Payment Controller', () => {
       mockConfirmPaymentIntent.mockRejectedValue(stripeError);
 
       // Act
-      await confirmPaymentIntentController(mockRequest as Request, mockResponse as Response);
+      await confirmPaymentIntentController(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       // Assert
       expect(mockLogger.error).toHaveBeenCalledWith(
@@ -350,7 +420,9 @@ describe('Payment Controller', () => {
         { error: stripeError }
       );
       expect(mockStatus).toHaveBeenCalledWith(500);
-      expect(mockJson).toHaveBeenCalledWith({ error: 'Failed to confirm payment intent' });
+      expect(mockJson).toHaveBeenCalledWith({
+        error: 'Failed to confirm payment intent',
+      });
     });
   });
 });

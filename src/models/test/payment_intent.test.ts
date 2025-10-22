@@ -37,7 +37,7 @@ describe('PaymentIntentModel', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     model = new PaymentIntentModel();
-    
+
     // Get references to the mocked functions
     mockDb = require('../../services/database').default;
     mockQueryBuilder = mockDb();
@@ -63,12 +63,14 @@ describe('PaymentIntentModel', () => {
 
       // Verify database was called with correct table name
       expect(mockDb).toHaveBeenCalledWith('payment_intents');
-      
+
       // Verify insert was called with correct data
       expect(mockQueryBuilder.insert).toHaveBeenCalledWith(paymentIntentData);
 
       // Verify logger was called
-      expect(mockLogger.info).toHaveBeenCalledWith(`Payment intent created: ${paymentIntentData.id}`);
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        `Payment intent created: ${paymentIntentData.id}`
+      );
     });
 
     it('should create payment intent with minimal data', async () => {
@@ -83,7 +85,9 @@ describe('PaymentIntentModel', () => {
 
       expect(mockDb).toHaveBeenCalledWith('payment_intents');
       expect(mockQueryBuilder.insert).toHaveBeenCalledWith(paymentIntentData);
-      expect(mockLogger.info).toHaveBeenCalledWith(`Payment intent created: ${paymentIntentData.id}`);
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        `Payment intent created: ${paymentIntentData.id}`
+      );
     });
 
     it('should handle database errors and log them', async () => {
@@ -97,10 +101,14 @@ describe('PaymentIntentModel', () => {
       const dbError = new Error('Database connection failed');
       mockQueryBuilder.insert.mockRejectedValueOnce(dbError);
 
-      await expect(model.createPaymentIntent(paymentIntentData)).rejects.toThrow('Database connection failed');
-      
+      await expect(
+        model.createPaymentIntent(paymentIntentData)
+      ).rejects.toThrow('Database connection failed');
+
       // Verify error was logged
-      expect(mockLogger.error).toHaveBeenCalledWith(`Error creating payment intent: ${dbError}`);
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        `Error creating payment intent: ${dbError}`
+      );
     });
   });
 
@@ -122,9 +130,14 @@ describe('PaymentIntentModel', () => {
       await model.updatePaymentIntent(paymentIntentData);
 
       expect(mockDb).toHaveBeenCalledWith('payment_intents');
-      expect(mockQueryBuilder.where).toHaveBeenCalledWith('id', paymentIntentData.id);
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
+        'id',
+        paymentIntentData.id
+      );
       expect(mockQueryBuilder.update).toHaveBeenCalledWith(paymentIntentData);
-      expect(mockLogger.info).toHaveBeenCalledWith(`Payment intent updated: ${paymentIntentData.id}`);
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        `Payment intent updated: ${paymentIntentData.id}`
+      );
     });
 
     it('should update payment intent with partial data', async () => {
@@ -137,9 +150,14 @@ describe('PaymentIntentModel', () => {
 
       await model.updatePaymentIntent(paymentIntentData);
 
-      expect(mockQueryBuilder.where).toHaveBeenCalledWith('id', paymentIntentData.id);
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
+        'id',
+        paymentIntentData.id
+      );
       expect(mockQueryBuilder.update).toHaveBeenCalledWith(paymentIntentData);
-      expect(mockLogger.info).toHaveBeenCalledWith(`Payment intent updated: ${paymentIntentData.id}`);
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        `Payment intent updated: ${paymentIntentData.id}`
+      );
     });
 
     it('should handle database errors when updating payment intent', async () => {
@@ -153,8 +171,12 @@ describe('PaymentIntentModel', () => {
       const dbError = new Error('Update failed');
       mockQueryBuilder.update.mockRejectedValueOnce(dbError);
 
-      await expect(model.updatePaymentIntent(paymentIntentData)).rejects.toThrow('Update failed');
-      expect(mockLogger.error).toHaveBeenCalledWith(`Error updating payment intent: ${dbError}`);
+      await expect(
+        model.updatePaymentIntent(paymentIntentData)
+      ).rejects.toThrow('Update failed');
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        `Error updating payment intent: ${dbError}`
+      );
     });
   });
 
@@ -181,7 +203,10 @@ describe('PaymentIntentModel', () => {
       const result = await model.getPaymentIntentById(paymentIntentId);
 
       expect(mockDb).toHaveBeenCalledWith('payment_intents');
-      expect(mockQueryBuilder.where).toHaveBeenCalledWith('id', paymentIntentId);
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
+        'id',
+        paymentIntentId
+      );
       expect(result).toEqual(mockPaymentIntent);
     });
 
@@ -191,7 +216,10 @@ describe('PaymentIntentModel', () => {
 
       const result = await model.getPaymentIntentById(paymentIntentId);
 
-      expect(mockQueryBuilder.where).toHaveBeenCalledWith('id', paymentIntentId);
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
+        'id',
+        paymentIntentId
+      );
       expect(result).toBeNull();
     });
 
@@ -200,8 +228,12 @@ describe('PaymentIntentModel', () => {
       const dbError = new Error('Query failed');
       mockQueryBuilder.first.mockRejectedValueOnce(dbError);
 
-      await expect(model.getPaymentIntentById(paymentIntentId)).rejects.toThrow('Query failed');
-      expect(mockLogger.error).toHaveBeenCalledWith(`Error getting payment intent by id: ${dbError}`);
+      await expect(model.getPaymentIntentById(paymentIntentId)).rejects.toThrow(
+        'Query failed'
+      );
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        `Error getting payment intent by id: ${dbError}`
+      );
     });
   });
 
@@ -232,7 +264,10 @@ describe('PaymentIntentModel', () => {
       const result = await model.getPaymentIntentsByCustomer(customerId);
 
       expect(mockDb).toHaveBeenCalledWith('payment_intents');
-      expect(mockQueryBuilder.where).toHaveBeenCalledWith('customer_id', customerId);
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
+        'customer_id',
+        customerId
+      );
       expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith('created', 'desc');
       expect(mockQueryBuilder.limit).toHaveBeenCalledWith(50);
       expect(mockQueryBuilder.offset).toHaveBeenCalledWith(0);
@@ -247,7 +282,11 @@ describe('PaymentIntentModel', () => {
 
       mockQueryBuilder.offset.mockResolvedValueOnce(mockPaymentIntents);
 
-      const result = await model.getPaymentIntentsByCustomer(customerId, limit, offset);
+      const result = await model.getPaymentIntentsByCustomer(
+        customerId,
+        limit,
+        offset
+      );
 
       expect(mockQueryBuilder.limit).toHaveBeenCalledWith(limit);
       expect(mockQueryBuilder.offset).toHaveBeenCalledWith(offset);
@@ -259,8 +298,12 @@ describe('PaymentIntentModel', () => {
       const dbError = new Error('Query failed');
       mockQueryBuilder.offset.mockRejectedValueOnce(dbError);
 
-      await expect(model.getPaymentIntentsByCustomer(customerId)).rejects.toThrow('Query failed');
-      expect(mockLogger.error).toHaveBeenCalledWith(`Error getting payment intents by customer: ${dbError}`);
+      await expect(
+        model.getPaymentIntentsByCustomer(customerId)
+      ).rejects.toThrow('Query failed');
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        `Error getting payment intents by customer: ${dbError}`
+      );
     });
   });
 
@@ -301,8 +344,12 @@ describe('PaymentIntentModel', () => {
       const dbError = new Error('Query failed');
       mockQueryBuilder.offset.mockRejectedValueOnce(dbError);
 
-      await expect(model.getPaymentIntentsByStatus(status)).rejects.toThrow('Query failed');
-      expect(mockLogger.error).toHaveBeenCalledWith(`Error getting payment intents by status: ${dbError}`);
+      await expect(model.getPaymentIntentsByStatus(status)).rejects.toThrow(
+        'Query failed'
+      );
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        `Error getting payment intents by status: ${dbError}`
+      );
     });
   });
 
@@ -354,8 +401,12 @@ describe('PaymentIntentModel', () => {
       const dbError = new Error('Query failed');
       mockQueryBuilder.offset.mockRejectedValueOnce(dbError);
 
-      await expect(model.getAllPaymentIntents()).rejects.toThrow('Query failed');
-      expect(mockLogger.error).toHaveBeenCalledWith(`Error getting all payment intents: ${dbError}`);
+      await expect(model.getAllPaymentIntents()).rejects.toThrow(
+        'Query failed'
+      );
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        `Error getting all payment intents: ${dbError}`
+      );
     });
   });
 });
