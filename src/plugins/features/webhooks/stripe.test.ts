@@ -14,7 +14,7 @@ jest.mock('../../../services/database', () => ({
 }));
 
 // Mock webhook database service
-jest.mock('../../../services/webhooks/db', () => ({
+jest.mock('../../../models/webhook_events', () => ({
   webhookEventDbService: {
     createWebhookEvent: jest.fn().mockResolvedValue(undefined),
     markWebhookEventAsProcessed: jest.fn().mockResolvedValue(undefined),
@@ -23,7 +23,7 @@ jest.mock('../../../services/webhooks/db', () => ({
   }
 }));
 
-import { webhookEventDbService } from '../../../services/webhooks/db';
+import { webhookEventDbService } from '../../../models/webhook_events'
 import app from '../../../index';
 
 // Mock Stripe webhook verification
