@@ -450,7 +450,7 @@ describe('Payment Controller', () => {
     it('should create a Zeus subscription payment successfully', async () => {
       // Arrange
       const requestBody = {
-        subscription_id: 'sub_123',
+        subscription_id: 123,
         user_id: 456,
         amount: 5000,
         currency: 'usd',
@@ -481,7 +481,7 @@ describe('Payment Controller', () => {
         customer: 'cus_test_123',
         description: 'Basketball subscription',
         metadata: {
-          subscription_id: 'sub_123',
+          subscription_id: 123,
           user_id: 456,
           sport_id: 1,
           team_id: 5,
@@ -511,7 +511,7 @@ describe('Payment Controller', () => {
         customer: 'cus_test_123',
         description: 'Basketball subscription',
         metadata: {
-          subscription_id: 'sub_123',
+          subscription_id: 123,
           user_id: 456,
           sport_id: 1,
           team_id: 5,
@@ -520,7 +520,7 @@ describe('Payment Controller', () => {
       });
       expect(mockPaymentIntentModel.createPaymentIntent).toHaveBeenCalled();
       expect(mockZeusSubscriptionModel.createZeusSubscription).toHaveBeenCalledWith({
-        subscription_id: 'sub_123',
+        subscription_id: 123,
         user_id: 456,
         payment_intent_id: 'pi_test_123',
         amount: 5000,
@@ -543,7 +543,7 @@ describe('Payment Controller', () => {
     it('should create Zeus subscription with default description', async () => {
       // Arrange
       const requestBody = {
-        subscription_id: 'sub_456',
+        subscription_id: 456,
         user_id: 789,
         amount: 3000,
         currency: 'usd',
@@ -566,9 +566,9 @@ describe('Payment Controller', () => {
         client_secret: 'pi_test_456_secret',
         status: 'requires_payment_method',
         customer: 'cus_test_456',
-        description: 'Zeus Subscription Payment - sub_456',
+        description: 'Zeus Subscription Payment - 456',
         metadata: {
-          subscription_id: 'sub_456',
+          subscription_id: 456,
           user_id: 789,
         },
         created: 1640995200,
@@ -589,9 +589,9 @@ describe('Payment Controller', () => {
       // Assert
       expect(mockCreatePaymentIntent).toHaveBeenCalledWith(3000, 'usd', {
         customer: 'cus_test_456',
-        description: 'Zeus Subscription Payment - sub_456',
+        description: 'Zeus Subscription Payment - 456',
         metadata: {
-          subscription_id: 'sub_456',
+          subscription_id: 456,
           user_id: 789,
         },
       });
@@ -605,7 +605,7 @@ describe('Payment Controller', () => {
     it('should handle Stripe customer creation errors', async () => {
       // Arrange
       const requestBody = {
-        subscription_id: 'sub_123',
+        subscription_id: 123,
         user_id: 456,
         amount: 5000,
         currency: 'usd',
@@ -640,7 +640,7 @@ describe('Payment Controller', () => {
     it('should handle Stripe payment intent creation errors', async () => {
       // Arrange
       const requestBody = {
-        subscription_id: 'sub_123',
+        subscription_id: 123,
         user_id: 456,
         amount: 5000,
         currency: 'usd',
@@ -682,7 +682,7 @@ describe('Payment Controller', () => {
     it('should handle database errors when creating payment intent', async () => {
       // Arrange
       const requestBody = {
-        subscription_id: 'sub_123',
+        subscription_id: 123,
         user_id: 456,
         amount: 5000,
         currency: 'usd',
@@ -707,7 +707,7 @@ describe('Payment Controller', () => {
         customer: 'cus_test_123',
         description: 'Zeus Subscription Payment - sub_123',
         metadata: {
-          subscription_id: 'sub_123',
+          subscription_id: 123,
           user_id: 456,
         },
         created: 1640995200,
@@ -740,7 +740,7 @@ describe('Payment Controller', () => {
     it('should handle database errors when creating Zeus subscription', async () => {
       // Arrange
       const requestBody = {
-        subscription_id: 'sub_123',
+        subscription_id: 123,
         user_id: 456,
         amount: 5000,
         currency: 'usd',
@@ -765,7 +765,7 @@ describe('Payment Controller', () => {
         customer: 'cus_test_123',
         description: 'Zeus Subscription Payment - sub_123',
         metadata: {
-          subscription_id: 'sub_123',
+          subscription_id: 123,
           user_id: 456,
         },
         created: 1640995200,

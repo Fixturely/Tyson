@@ -2,8 +2,8 @@ import db from '../services/database';
 import logger from '../utils/logger';
 
 export interface ZeusSubscriptionData {
-  id?: string;
-  subscription_id: string;
+  id?: number;
+  subscription_id: number;
   user_id: number;
   payment_intent_id: string;
   amount: number;

@@ -6,7 +6,7 @@ exports.up = function (knex) {
   return knex.schema
     .createTable('zeus_subscriptions', table => {
       table.increments('id').primary();
-      table.string('subscription_id').unique().notNullable(); // subscription id
+      table.integer('subscription_id').unique().notNullable(); // subscription id
       table.integer('user_id').notNullable(); // user id
       table.string('payment_intent_id').notNullable();
 
@@ -22,8 +22,7 @@ exports.up = function (knex) {
       // Payment tracking
       table.integer('amount').notNullable(); // Amount in cents
       table.string('currency', 3).notNullable().defaultTo('usd');
-      table.string('status').notNullable().defaultTo('pending'); // pending | succeeded | failed | canceled
-
+      table.enum('status', ['pending', 'succeeded', 'failed', 'canceled']).notNullable().defaultTo('pending');
       // Timestamps
       table.timestamp('created_at').defaultTo(knex.fn.now());
       table.timestamp('updated_at').defaultTo(knex.fn.now());

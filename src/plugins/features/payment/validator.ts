@@ -13,7 +13,7 @@ export const confirmSchema = Joi.object({
 
 // Zeus subscription payment schema
 export const zeusSubscriptionSchema = Joi.object({
-  subscription_id: Joi.string().required(),
+  subscription_id: Joi.number().integer().required(),
   user_id: Joi.number().integer().required(),
   amount: Joi.number().integer().min(1).required(), // cents
   currency: Joi.string().lowercase().default('usd'),

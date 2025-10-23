@@ -49,7 +49,7 @@ export async function createPaymentIntent(
     metadata?: any;
   }
 ): Promise<CreatePaymentIntentResult> {
-  const paymentIntentParams: any = {
+  const paymentIntentParams: Stripe.PaymentIntentCreateParams = {
     amount: amountCents,
     currency,
     automatic_payment_methods: {
@@ -138,15 +138,10 @@ export async function createOrGetStripeCustomer(customerInfo: {
       );
       return existingCustomers.data[0] as Stripe.Customer;
     }
-    const customerParams: any = {
+    const newCustomer = await stripe.customers.create({
       email: customerInfo.email,
-    };
-
-    if (customerInfo.email) {
-      customerParams.name = customerInfo.name;
-    }
-
-    const newCustomer = await stripe.customers.create(customerParams);
+      name: customerInfo.name || '',
+    });
 
     logger.info(`Created new Stripe customer: ${newCustomer.id}`);
     return newCustomer;

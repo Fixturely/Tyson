@@ -49,8 +49,7 @@ describe('ZeusSubscriptionModel', () => {
   describe('createZeusSubscription', () => {
     it('should create a zeus-subscription successfully', async () => {
       const zeusSubscriptionData: ZeusSubscriptionData = {
-        id: 'pi_123',
-        subscription_id: 'sub_123',
+        subscription_id: 123,
         user_id: 123,
         payment_intent_id: 'pi_123',
         amount: 5000,
@@ -72,7 +71,7 @@ describe('ZeusSubscriptionModel', () => {
 
     it('should throw an error if the database insertion fails', async () => {
       const zeusSubscriptionData: ZeusSubscriptionData = {
-        subscription_id: 'sub_123',
+        subscription_id: 123,
         user_id: 123,
         payment_intent_id: 'pi_123',
         amount: 5000,

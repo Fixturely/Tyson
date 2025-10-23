@@ -98,11 +98,11 @@ export async function createZeusSubscriptionPaymentController(
       amount,
       currency,
       status: 'pending',
-      sport_id: metadata?.sport_id || undefined,
-      team_id: metadata?.team_id || undefined,
-      subscription_type: metadata?.subscription_type || undefined,
+      sport_id: metadata?.sport_id,
+      team_id: metadata?.team_id,
+      subscription_type: metadata?.subscription_type,
       customer_email: customer_info.email,
-      customer_name: customer_info?.name || undefined,
+      customer_name: customer_info?.name,
     });
 
     return res.json({
