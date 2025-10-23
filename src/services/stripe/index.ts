@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import Stripe from 'stripe';
 import config from '../../../config';
+import logger from '../../utils/logger';
 
 const secretKey =
   config.stripe?.secretKey || process.env.STRIPE_SECRET_KEY || '';
@@ -41,16 +42,34 @@ export interface ConfirmPaymentIntentResult {
 
 export async function createPaymentIntent(
   amountCents: number,
-  currency = 'usd'
+  currency = 'usd',
+  options?: {
+    customer?: string;
+    description?: string;
+    metadata?: any;
+  }
 ): Promise<CreatePaymentIntentResult> {
-  const pi = await stripe.paymentIntents.create({
+  const paymentIntentParams: any = {
     amount: amountCents,
     currency,
     automatic_payment_methods: {
       enabled: true,
       allow_redirects: 'never',
     },
-  });
+  };
+
+  // Only add optional properties if they exist
+  if (options?.customer) {
+    paymentIntentParams.customer = options.customer;
+  }
+  if (options?.description) {
+    paymentIntentParams.description = options.description;
+  }
+  if (options?.metadata) {
+    paymentIntentParams.metadata = options.metadata;
+  }
+
+  const pi = await stripe.paymentIntents.create(paymentIntentParams);
   return {
     id: pi.id,
     amount: pi.amount,
@@ -100,4 +119,39 @@ export async function confirmPaymentIntent(
         : confirmed.payment_method.id
       : null,
   };
+}
+
+export async function createOrGetStripeCustomer(customerInfo: {
+  email: string;
+  name?: string;
+}): Promise<Stripe.Customer> {
+  try {
+    // Check if customer exists by email
+    const existingCustomers = await stripe.customers.list({
+      email: customerInfo.email,
+      limit: 1,
+    });
+
+    if (existingCustomers.data.length > 0) {
+      logger.info(
+        `Found existing Stripe customer: ${existingCustomers.data[0]?.id}`
+      );
+      return existingCustomers.data[0] as Stripe.Customer;
+    }
+    const customerParams: any = {
+      email: customerInfo.email,
+    };
+
+    if (customerInfo.email) {
+      customerParams.name = customerInfo.name;
+    }
+
+    const newCustomer = await stripe.customers.create(customerParams);
+
+    logger.info(`Created new Stripe customer: ${newCustomer.id}`);
+    return newCustomer;
+  } catch (error) {
+    logger.error(`Error creating/getting Stripe customer: ${error}`);
+    throw error;
+  }
 }

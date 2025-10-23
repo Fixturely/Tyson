@@ -2,7 +2,17 @@
 jest.mock('../../../services/stripe', () => ({
   createPaymentIntent: jest.fn(),
   confirmPaymentIntent: jest.fn(),
+  createOrGetStripeCustomer: jest.fn(),
 }));
+
+const mockZeusSubscriptionModel = {
+  createZeusSubscription: jest.fn(),
+};
+
+jest.mock('../../../models/zeus_subscriptions', () => ({
+  zeusSubscriptionModel: mockZeusSubscriptionModel,
+}));
+
 
 jest.mock('../../../models/payment_intent', () => ({
   paymentIntentModel: {
@@ -21,10 +31,12 @@ import { Request, Response } from 'express';
 import {
   createPaymentIntentController,
   confirmPaymentIntentController,
+  createZeusSubscriptionPaymentController,
 } from './controller';
 import {
   createPaymentIntent,
   confirmPaymentIntent,
+  createOrGetStripeCustomer,
 } from '../../../services/stripe';
 import { paymentIntentModel } from '../../../models/payment_intent';
 import logger from '../../../utils/logger';
@@ -36,6 +48,10 @@ const mockCreatePaymentIntent =
 const mockConfirmPaymentIntent =
   confirmPaymentIntent as unknown as jest.MockedFunction<
     typeof confirmPaymentIntent
+  >;
+const mockCreateOrGetStripeCustomer =
+  createOrGetStripeCustomer as unknown as jest.MockedFunction<
+    typeof createOrGetStripeCustomer
   >;
 const mockPaymentIntentModel = paymentIntentModel as unknown as {
   createPaymentIntent: jest.Mock;
@@ -422,6 +438,361 @@ describe('Payment Controller', () => {
       expect(mockStatus).toHaveBeenCalledWith(500);
       expect(mockJson).toHaveBeenCalledWith({
         error: 'Failed to confirm payment intent',
+      });
+    });
+  });
+
+  describe('createZeusSubscriptionPaymentController', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('should create a Zeus subscription payment successfully', async () => {
+      // Arrange
+      const requestBody = {
+        subscription_id: 'sub_123',
+        user_id: 456,
+        amount: 5000,
+        currency: 'usd',
+        description: 'Basketball subscription',
+        metadata: {
+          sport_id: 1,
+          team_id: 5,
+          subscription_type: 'monthly',
+        },
+        customer_info: {
+          email: 'user@example.com',
+          name: 'John Doe',
+        },
+      };
+
+      const stripeCustomer = {
+        id: 'cus_test_123',
+        email: 'user@example.com',
+        name: 'John Doe',
+      } as any;
+
+      const stripeResult = {
+        id: 'pi_test_123',
+        amount: 5000,
+        currency: 'usd',
+        client_secret: 'pi_test_123_secret',
+        status: 'requires_payment_method',
+        customer: 'cus_test_123',
+        description: 'Basketball subscription',
+        metadata: {
+          subscription_id: 'sub_123',
+          user_id: 456,
+          sport_id: 1,
+          team_id: 5,
+          subscription_type: 'monthly',
+        },
+        created: 1640995200,
+      };
+
+      mockRequest.body = requestBody;
+      mockCreateOrGetStripeCustomer.mockResolvedValue(stripeCustomer);
+      mockCreatePaymentIntent.mockResolvedValue(stripeResult);
+      mockPaymentIntentModel.createPaymentIntent.mockResolvedValue(undefined);
+      mockZeusSubscriptionModel.createZeusSubscription.mockResolvedValue(undefined);
+
+      // Act
+      await createZeusSubscriptionPaymentController(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      // Assert
+      expect(mockCreateOrGetStripeCustomer).toHaveBeenCalledWith({
+        email: 'user@example.com',
+        name: 'John Doe',
+      });
+      expect(mockCreatePaymentIntent).toHaveBeenCalledWith(5000, 'usd', {
+        customer: 'cus_test_123',
+        description: 'Basketball subscription',
+        metadata: {
+          subscription_id: 'sub_123',
+          user_id: 456,
+          sport_id: 1,
+          team_id: 5,
+          subscription_type: 'monthly',
+        },
+      });
+      expect(mockPaymentIntentModel.createPaymentIntent).toHaveBeenCalled();
+      expect(mockZeusSubscriptionModel.createZeusSubscription).toHaveBeenCalledWith({
+        subscription_id: 'sub_123',
+        user_id: 456,
+        payment_intent_id: 'pi_test_123',
+        amount: 5000,
+        currency: 'usd',
+        status: 'pending',
+        sport_id: 1,
+        team_id: 5,
+        subscription_type: 'monthly',
+        customer_email: 'user@example.com',
+        customer_name: 'John Doe',
+      });
+      expect(mockJson).toHaveBeenCalledWith({
+        payment_intent_id: 'pi_test_123',
+        client_secret: 'pi_test_123_secret',
+        status: 'requires_payment_method',
+      });
+      expect(mockStatus).not.toHaveBeenCalled();
+    });
+
+    it('should create Zeus subscription with default description', async () => {
+      // Arrange
+      const requestBody = {
+        subscription_id: 'sub_456',
+        user_id: 789,
+        amount: 3000,
+        currency: 'usd',
+        customer_info: {
+          email: 'test@example.com',
+          name: 'Jane Doe',
+        },
+      };
+
+      const stripeCustomer = {
+        id: 'cus_test_456',
+        email: 'test@example.com',
+        name: 'Jane Doe',
+      } as any;
+
+      const stripeResult = {
+        id: 'pi_test_456',
+        amount: 3000,
+        currency: 'usd',
+        client_secret: 'pi_test_456_secret',
+        status: 'requires_payment_method',
+        customer: 'cus_test_456',
+        description: 'Zeus Subscription Payment - sub_456',
+        metadata: {
+          subscription_id: 'sub_456',
+          user_id: 789,
+        },
+        created: 1640995200,
+      };
+
+      mockRequest.body = requestBody;
+      mockCreateOrGetStripeCustomer.mockResolvedValue(stripeCustomer);
+      mockCreatePaymentIntent.mockResolvedValue(stripeResult);
+      mockPaymentIntentModel.createPaymentIntent.mockResolvedValue(undefined);
+      mockZeusSubscriptionModel.createZeusSubscription.mockResolvedValue(undefined);
+
+      // Act
+      await createZeusSubscriptionPaymentController(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      // Assert
+      expect(mockCreatePaymentIntent).toHaveBeenCalledWith(3000, 'usd', {
+        customer: 'cus_test_456',
+        description: 'Zeus Subscription Payment - sub_456',
+        metadata: {
+          subscription_id: 'sub_456',
+          user_id: 789,
+        },
+      });
+      expect(mockJson).toHaveBeenCalledWith({
+        payment_intent_id: 'pi_test_456',
+        client_secret: 'pi_test_456_secret',
+        status: 'requires_payment_method',
+      });
+    });
+
+    it('should handle Stripe customer creation errors', async () => {
+      // Arrange
+      const requestBody = {
+        subscription_id: 'sub_123',
+        user_id: 456,
+        amount: 5000,
+        currency: 'usd',
+        customer_info: {
+          email: 'user@example.com',
+          name: 'John Doe',
+        },
+      };
+
+      const stripeError = new Error('Stripe customer creation failed');
+
+      mockRequest.body = requestBody;
+      mockCreateOrGetStripeCustomer.mockRejectedValue(stripeError);
+
+      // Act
+      await createZeusSubscriptionPaymentController(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      // Assert
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Failed to create Zeus subscription payment: Stripe customer creation failed',
+        { error: stripeError }
+      );
+      expect(mockStatus).toHaveBeenCalledWith(500);
+      expect(mockJson).toHaveBeenCalledWith({
+        error: 'Failed to create Zeus subscription payment',
+      });
+    });
+
+    it('should handle Stripe payment intent creation errors', async () => {
+      // Arrange
+      const requestBody = {
+        subscription_id: 'sub_123',
+        user_id: 456,
+        amount: 5000,
+        currency: 'usd',
+        customer_info: {
+          email: 'user@example.com',
+          name: 'John Doe',
+        },
+      };
+
+      const stripeCustomer = {
+        id: 'cus_test_123',
+        email: 'user@example.com',
+        name: 'John Doe',
+      } as any;
+
+      const stripeError = new Error('Stripe payment intent creation failed');
+
+      mockRequest.body = requestBody;
+      mockCreateOrGetStripeCustomer.mockResolvedValue(stripeCustomer);
+      mockCreatePaymentIntent.mockRejectedValue(stripeError);
+
+      // Act
+      await createZeusSubscriptionPaymentController(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      // Assert
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Failed to create Zeus subscription payment: Stripe payment intent creation failed',
+        { error: stripeError }
+      );
+      expect(mockStatus).toHaveBeenCalledWith(500);
+      expect(mockJson).toHaveBeenCalledWith({
+        error: 'Failed to create Zeus subscription payment',
+      });
+    });
+
+    it('should handle database errors when creating payment intent', async () => {
+      // Arrange
+      const requestBody = {
+        subscription_id: 'sub_123',
+        user_id: 456,
+        amount: 5000,
+        currency: 'usd',
+        customer_info: {
+          email: 'user@example.com',
+          name: 'John Doe',
+        },
+      };
+
+      const stripeCustomer = {
+        id: 'cus_test_123',
+        email: 'user@example.com',
+        name: 'John Doe',
+      } as any;
+
+      const stripeResult = {
+        id: 'pi_test_123',
+        amount: 5000,
+        currency: 'usd',
+        client_secret: 'pi_test_123_secret',
+        status: 'requires_payment_method',
+        customer: 'cus_test_123',
+        description: 'Zeus Subscription Payment - sub_123',
+        metadata: {
+          subscription_id: 'sub_123',
+          user_id: 456,
+        },
+        created: 1640995200,
+      };
+
+      const dbError = new Error('Database payment intent creation failed');
+
+      mockRequest.body = requestBody;
+      mockCreateOrGetStripeCustomer.mockResolvedValue(stripeCustomer);
+      mockCreatePaymentIntent.mockResolvedValue(stripeResult);
+      mockPaymentIntentModel.createPaymentIntent.mockRejectedValue(dbError);
+
+      // Act
+      await createZeusSubscriptionPaymentController(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      // Assert
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Failed to create Zeus subscription payment: Database payment intent creation failed',
+        { error: dbError }
+      );
+      expect(mockStatus).toHaveBeenCalledWith(500);
+      expect(mockJson).toHaveBeenCalledWith({
+        error: 'Failed to create Zeus subscription payment',
+      });
+    });
+
+    it('should handle database errors when creating Zeus subscription', async () => {
+      // Arrange
+      const requestBody = {
+        subscription_id: 'sub_123',
+        user_id: 456,
+        amount: 5000,
+        currency: 'usd',
+        customer_info: {
+          email: 'user@example.com',
+          name: 'John Doe',
+        },
+      };
+
+      const stripeCustomer = {
+        id: 'cus_test_123',
+        email: 'user@example.com',
+        name: 'John Doe',
+      } as any;
+
+      const stripeResult = {
+        id: 'pi_test_123',
+        amount: 5000,
+        currency: 'usd',
+        client_secret: 'pi_test_123_secret',
+        status: 'requires_payment_method',
+        customer: 'cus_test_123',
+        description: 'Zeus Subscription Payment - sub_123',
+        metadata: {
+          subscription_id: 'sub_123',
+          user_id: 456,
+        },
+        created: 1640995200,
+      };
+
+      const dbError = new Error('Database Zeus subscription creation failed');
+
+      mockRequest.body = requestBody;
+      mockCreateOrGetStripeCustomer.mockResolvedValue(stripeCustomer);
+      mockCreatePaymentIntent.mockResolvedValue(stripeResult);
+      mockPaymentIntentModel.createPaymentIntent.mockResolvedValue(undefined);
+      mockZeusSubscriptionModel.createZeusSubscription.mockRejectedValue(dbError);
+
+      // Act
+      await createZeusSubscriptionPaymentController(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      // Assert
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Failed to create Zeus subscription payment: Database Zeus subscription creation failed',
+        { error: dbError }
+      );
+      expect(mockStatus).toHaveBeenCalledWith(500);
+      expect(mockJson).toHaveBeenCalledWith({
+        error: 'Failed to create Zeus subscription payment',
       });
     });
   });
