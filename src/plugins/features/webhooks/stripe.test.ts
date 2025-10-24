@@ -23,6 +23,24 @@ jest.mock('../../../models/webhook_events', () => ({
   },
 }));
 
+// Mock Zeus subscription model
+jest.mock('../../../models/zeus_subscriptions', () => ({
+  zeusSubscriptionModel: {
+    getZeusSubscriptionByPaymentIntent: jest.fn().mockResolvedValue(null),
+    updateZeusSubscriptionStatus: jest.fn().mockResolvedValue(undefined),
+    markZeusNotified: jest.fn().mockResolvedValue(undefined),
+  },
+}));
+
+// Mock Zeus notification service
+jest.mock('../../../services/notifications/zeus', () => ({
+  zeusNotificationService: {
+    notifyPaymentSucceeded: jest.fn().mockResolvedValue(undefined),
+    notifyPaymentFailed: jest.fn().mockResolvedValue(undefined),
+    notifyPaymentCanceled: jest.fn().mockResolvedValue(undefined),
+  },
+}));
+
 import { webhookEventDbService } from '../../../models/webhook_events';
 import app from '../../../index';
 

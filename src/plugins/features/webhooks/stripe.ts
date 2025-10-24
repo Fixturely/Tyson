@@ -4,12 +4,110 @@ import logger from '../../../utils/logger';
 import config from '../../../../config';
 import { idempotencyKeyStore } from '../../../services/idempotency/index';
 import { webhookEventDbService } from '../../../models/webhook_events';
+import { zeusSubscriptionModel } from '../../../models/zeus_subscriptions';
+import {
+  ZeusNotificationData,
+  zeusNotificationService,
+} from '../../../services/notifications/zeus';
 
 const router = express.Router();
 
 const stripe = new Stripe(config.stripe.secretKey, {
   apiVersion: config.stripe.apiVersion as Stripe.LatestApiVersion,
 });
+
+// Types for Zeus subscription and metadata
+interface ZeusSubscription {
+  sport_id?: number;
+  team_id?: number;
+  subscription_type?: string;
+  [key: string]: any; // Allow other properties if needed
+}
+interface ZeusSubscriptionMetadata {
+  sport_id?: number;
+  team_id?: number;
+  subscription_type?: string;
+}
+
+// Helper function to build metadata object
+function buildMetadata(
+  subscription: ZeusSubscription
+): ZeusSubscriptionMetadata | undefined {
+  const metadata: ZeusSubscriptionMetadata = {};
+  if (subscription.sport_id) metadata.sport_id = subscription.sport_id;
+  if (subscription.team_id) metadata.team_id = subscription.team_id;
+  if (subscription.subscription_type)
+    metadata.subscription_type = subscription.subscription_type;
+  return Object.keys(metadata).length > 0 ? metadata : undefined;
+}
+
+// Helper function to handle Zeus subscription processing
+async function handleZeusSubscription(
+  paymentIntent: Stripe.PaymentIntent,
+  status: 'succeeded' | 'failed' | 'canceled',
+  paidAt?: Date
+): Promise<void> {
+  const subscription =
+    await zeusSubscriptionModel.getZeusSubscriptionByPaymentIntent(
+      paymentIntent.id
+    );
+
+  if (!subscription) {
+    logger.warn('No Zeus subscription found for payment intent', {
+      payment_intent_id: paymentIntent.id,
+    });
+    return; // Not a Zeus subscription
+  }
+
+  // Update subscription status
+  await zeusSubscriptionModel.updateZeusSubscriptionStatus(
+    subscription.subscription_id,
+    status,
+    paidAt
+  );
+
+  // Notify Zeus about payment status
+  try {
+    const metadata = buildMetadata(subscription);
+    const notificationData: ZeusNotificationData = {
+      subscription_id: subscription.subscription_id,
+      user_id: subscription.user_id,
+      payment_intent_id: paymentIntent.id,
+      amount: paymentIntent.amount,
+      currency: paymentIntent.currency,
+      metadata: metadata ?? {},
+    };
+
+    // Add status-specific fields
+    if (status === 'succeeded') {
+      notificationData.paid_at = paidAt || new Date();
+      await zeusNotificationService.notifyPaymentSucceeded(notificationData);
+      await zeusSubscriptionModel.markZeusNotified(
+        subscription.subscription_id
+      );
+    } else if (status === 'failed') {
+      if (paymentIntent.last_payment_error?.message != null) {
+        notificationData.error_message =
+          paymentIntent.last_payment_error?.message;
+      } else {
+        notificationData.error_message = 'Unknown failure reason';
+      }
+      await zeusNotificationService.notifyPaymentFailed(notificationData);
+    } else if (status === 'canceled') {
+      if (paymentIntent.cancellation_reason != null) {
+        notificationData.error_message = paymentIntent.cancellation_reason;
+      } else {
+        notificationData.error_message = 'Unknown cancellation reason';
+      }
+      await zeusNotificationService.notifyPaymentCanceled(notificationData);
+    }
+  } catch (notificationError) {
+    logger.error(`Failed to notify Zeus of ${status} payment`, {
+      subscription_id: subscription.subscription_id,
+      error: notificationError,
+    });
+  }
+}
 
 router.post('/', async (req: express.Request, res: express.Response) => {
   const sig = req.headers['stripe-signature'] as string | undefined;
@@ -77,7 +175,13 @@ router.post('/', async (req: express.Request, res: express.Response) => {
           amount: paymentIntentSucceeded.amount,
           currency: paymentIntentSucceeded.currency,
         });
-        // TODO: Update PaymentIntent status, fulfill order, send confirmation
+
+        // Handle Zeus subscription if applicable
+        await handleZeusSubscription(
+          paymentIntentSucceeded,
+          'succeeded',
+          new Date()
+        );
         break;
 
       case 'payment_intent.payment_failed':
@@ -87,7 +191,9 @@ router.post('/', async (req: express.Request, res: express.Response) => {
           error: paymentIntentFailed.last_payment_error?.message,
           code: paymentIntentFailed.last_payment_error?.code,
         });
-        // TODO: Update PaymentIntent status, notify user, retry logic
+
+        // Handle Zeus subscription if applicable
+        await handleZeusSubscription(paymentIntentFailed, 'failed');
         break;
 
       case 'payment_intent.canceled':
@@ -96,7 +202,9 @@ router.post('/', async (req: express.Request, res: express.Response) => {
           id: paymentIntentCanceled.id,
           reason: paymentIntentCanceled.cancellation_reason,
         });
-        // TODO: Update PaymentIntent status, handle cancellation
+
+        // Handle Zeus subscription if applicable
+        await handleZeusSubscription(paymentIntentCanceled, 'canceled');
         break;
 
       // Charge Events

@@ -35,6 +35,69 @@ export class ZeusSubscriptionModel {
       throw error;
     }
   }
+
+  async getZeusSubscriptionByPaymentIntent(
+    paymentIntentId: string
+  ): Promise<ZeusSubscriptionData | null> {
+    try {
+      const subscription = await db('zeus_subscriptions')
+        .where('payment_intent_id', paymentIntentId)
+        .first();
+
+      return subscription as ZeusSubscriptionData | null;
+    } catch (error) {
+      logger.error(
+        `Error getting Zeus subscription by payment intent: ${error}`
+      );
+      throw error;
+    }
+  }
+
+  async updateZeusSubscriptionStatus(
+    subscriptionId: number,
+    status: string,
+    paidAt?: Date
+  ): Promise<void> {
+    try {
+      const updateData: Partial<ZeusSubscriptionData> = {
+        status,
+      };
+
+      if (paidAt) {
+        updateData.paid_at = paidAt;
+      }
+
+      await db('zeus_subscriptions')
+        .where('subscription_id', subscriptionId)
+        .update(updateData);
+
+      logger.info(
+        `Zeus subscription ${subscriptionId} status updated to ${status}`
+      );
+    } catch (error) {
+      logger.error(`Error updating Zeus subscription status: ${error}`);
+      throw error;
+    }
+  }
+
+  async markZeusNotified(
+    subscriptionId: number,
+    attempts: number = 1
+  ): Promise<void> {
+    try {
+      await db('zeus_subscriptions')
+        .where('subscription_id', subscriptionId)
+        .update({
+          zeus_notified_at: new Date(),
+          zeus_notification_attempts: attempts,
+        });
+
+      logger.info(`Zeus subscription ${subscriptionId} marked as notified`);
+    } catch (error) {
+      logger.error(`Error marking Zeus subscription as notified: ${error}`);
+      throw error;
+    }
+  }
 }
 
 export const zeusSubscriptionModel = new ZeusSubscriptionModel();
