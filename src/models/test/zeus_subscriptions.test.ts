@@ -90,4 +90,130 @@ describe('ZeusSubscriptionModel', () => {
       );
     });
   });
+
+  describe('getZeusSubscriptionByPaymentIntent', () => {
+    it('should retrieve a Zeus subscription by payment intent ID', async () => {
+      const mockSubscription = {
+        id: 1,
+        subscription_id: 123,
+        user_id: 456,
+        payment_intent_id: 'pi_test_123',
+        amount: 5000,
+        currency: 'usd',
+        status: 'pending',
+        customer_email: 'test@test.com',
+        customer_name: 'John Doe',
+      };
+
+      mockQueryBuilder.first.mockResolvedValueOnce(mockSubscription);
+
+      const result = await model.getZeusSubscriptionByPaymentIntent('pi_test_123');
+
+      expect(mockDb).toHaveBeenCalledWith('zeus_subscriptions');
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith('payment_intent_id', 'pi_test_123');
+      expect(mockQueryBuilder.first).toHaveBeenCalled();
+      expect(result).toEqual(mockSubscription);
+    });
+
+    it('should return null when subscription not found', async () => {
+      mockQueryBuilder.first.mockResolvedValueOnce(null);
+
+      const result = await model.getZeusSubscriptionByPaymentIntent('pi_nonexistent');
+
+      expect(result).toBeNull();
+    });
+
+    it('should handle database errors', async () => {
+      const dbError = new Error('Database query failed');
+      mockQueryBuilder.first.mockRejectedValueOnce(dbError);
+
+      await expect(
+        model.getZeusSubscriptionByPaymentIntent('pi_test_123')
+      ).rejects.toThrow('Database query failed');
+
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Error getting Zeus subscription by payment intent: Error: Database query failed'
+      );
+    });
+  });
+
+  describe('updateZeusSubscriptionStatus', () => {
+    it('should update subscription status successfully', async () => {
+      await model.updateZeusSubscriptionStatus(123, 'succeeded');
+
+      expect(mockDb).toHaveBeenCalledWith('zeus_subscriptions');
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith('subscription_id', 123);
+      expect(mockQueryBuilder.update).toHaveBeenCalledWith({
+        status: 'succeeded',
+        updated_at: expect.any(Date),
+      });
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        'Zeus subscription 123 status updated to succeeded'
+      );
+    });
+
+    it('should update subscription status with paid_at timestamp', async () => {
+      const paidAt = new Date('2025-01-24T01:42:25.000Z');
+      await model.updateZeusSubscriptionStatus(123, 'succeeded', paidAt);
+
+      expect(mockQueryBuilder.update).toHaveBeenCalledWith({
+        status: 'succeeded',
+        updated_at: expect.any(Date),
+        paid_at: paidAt,
+      });
+    });
+
+    it('should handle database errors', async () => {
+      const dbError = new Error('Database update failed');
+      mockQueryBuilder.update.mockRejectedValueOnce(dbError);
+
+      await expect(
+        model.updateZeusSubscriptionStatus(123, 'succeeded')
+      ).rejects.toThrow('Database update failed');
+
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Error updating Zeus subscription status: Error: Database update failed'
+      );
+    });
+  });
+
+  describe('markZeusNotified', () => {
+    it('should mark Zeus subscription as notified successfully', async () => {
+      await model.markZeusNotified(123);
+
+      expect(mockDb).toHaveBeenCalledWith('zeus_subscriptions');
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith('subscription_id', 123);
+      expect(mockQueryBuilder.update).toHaveBeenCalledWith({
+        zeus_notified_at: expect.any(Date),
+        zeus_notification_attempts: 1,
+        updated_at: expect.any(Date),
+      });
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        'Zeus subscription 123 marked as notified'
+      );
+    });
+
+    it('should mark Zeus subscription as notified with custom attempts', async () => {
+      await model.markZeusNotified(123, 3);
+
+      expect(mockQueryBuilder.update).toHaveBeenCalledWith({
+        zeus_notified_at: expect.any(Date),
+        zeus_notification_attempts: 3,
+        updated_at: expect.any(Date),
+      });
+    });
+
+    it('should handle database errors', async () => {
+      const dbError = new Error('Database update failed');
+      mockQueryBuilder.update.mockRejectedValueOnce(dbError);
+
+      await expect(
+        model.markZeusNotified(123)
+      ).rejects.toThrow('Database update failed');
+
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Error marking Zeus subscription as notified: Error: Database update failed'
+      );
+    });
+  });
 });
