@@ -22,7 +22,10 @@ exports.up = function (knex) {
       // Payment tracking
       table.integer('amount').notNullable(); // Amount in cents
       table.string('currency', 3).notNullable().defaultTo('usd');
-      table.enum('status', ['pending', 'succeeded', 'failed', 'canceled']).notNullable().defaultTo('pending');
+      table
+        .enum('status', ['pending', 'succeeded', 'failed', 'canceled'])
+        .notNullable()
+        .defaultTo('pending');
       // Timestamps
       table.timestamp('created_at').defaultTo(knex.fn.now());
       table.timestamp('updated_at').defaultTo(knex.fn.now());

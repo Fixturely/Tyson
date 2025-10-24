@@ -43,10 +43,12 @@ export class ZeusSubscriptionModel {
       const subscription = await db('zeus_subscriptions')
         .where('payment_intent_id', paymentIntentId)
         .first();
-      
+
       return subscription as ZeusSubscriptionData | null;
     } catch (error) {
-      logger.error(`Error getting Zeus subscription by payment intent: ${error}`);
+      logger.error(
+        `Error getting Zeus subscription by payment intent: ${error}`
+      );
       throw error;
     }
   }
@@ -57,11 +59,10 @@ export class ZeusSubscriptionModel {
     paidAt?: Date
   ): Promise<void> {
     try {
-      const updateData: any = {
+      const updateData: Partial<ZeusSubscriptionData> = {
         status,
-        updated_at: new Date(),
       };
-      
+
       if (paidAt) {
         updateData.paid_at = paidAt;
       }
@@ -69,8 +70,10 @@ export class ZeusSubscriptionModel {
       await db('zeus_subscriptions')
         .where('subscription_id', subscriptionId)
         .update(updateData);
-      
-      logger.info(`Zeus subscription ${subscriptionId} status updated to ${status}`);
+
+      logger.info(
+        `Zeus subscription ${subscriptionId} status updated to ${status}`
+      );
     } catch (error) {
       logger.error(`Error updating Zeus subscription status: ${error}`);
       throw error;
@@ -87,9 +90,8 @@ export class ZeusSubscriptionModel {
         .update({
           zeus_notified_at: new Date(),
           zeus_notification_attempts: attempts,
-          updated_at: new Date(),
         });
-      
+
       logger.info(`Zeus subscription ${subscriptionId} marked as notified`);
     } catch (error) {
       logger.error(`Error marking Zeus subscription as notified: ${error}`);

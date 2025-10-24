@@ -13,7 +13,6 @@ jest.mock('../../../models/zeus_subscriptions', () => ({
   zeusSubscriptionModel: mockZeusSubscriptionModel,
 }));
 
-
 jest.mock('../../../models/payment_intent', () => ({
   paymentIntentModel: {
     createPaymentIntent: jest.fn(),
@@ -494,7 +493,9 @@ describe('Payment Controller', () => {
       mockCreateOrGetStripeCustomer.mockResolvedValue(stripeCustomer);
       mockCreatePaymentIntent.mockResolvedValue(stripeResult);
       mockPaymentIntentModel.createPaymentIntent.mockResolvedValue(undefined);
-      mockZeusSubscriptionModel.createZeusSubscription.mockResolvedValue(undefined);
+      mockZeusSubscriptionModel.createZeusSubscription.mockResolvedValue(
+        undefined
+      );
 
       // Act
       await createZeusSubscriptionPaymentController(
@@ -519,7 +520,9 @@ describe('Payment Controller', () => {
         },
       });
       expect(mockPaymentIntentModel.createPaymentIntent).toHaveBeenCalled();
-      expect(mockZeusSubscriptionModel.createZeusSubscription).toHaveBeenCalledWith({
+      expect(
+        mockZeusSubscriptionModel.createZeusSubscription
+      ).toHaveBeenCalledWith({
         subscription_id: 123,
         user_id: 456,
         payment_intent_id: 'pi_test_123',
@@ -578,7 +581,9 @@ describe('Payment Controller', () => {
       mockCreateOrGetStripeCustomer.mockResolvedValue(stripeCustomer);
       mockCreatePaymentIntent.mockResolvedValue(stripeResult);
       mockPaymentIntentModel.createPaymentIntent.mockResolvedValue(undefined);
-      mockZeusSubscriptionModel.createZeusSubscription.mockResolvedValue(undefined);
+      mockZeusSubscriptionModel.createZeusSubscription.mockResolvedValue(
+        undefined
+      );
 
       // Act
       await createZeusSubscriptionPaymentController(
@@ -777,7 +782,9 @@ describe('Payment Controller', () => {
       mockCreateOrGetStripeCustomer.mockResolvedValue(stripeCustomer);
       mockCreatePaymentIntent.mockResolvedValue(stripeResult);
       mockPaymentIntentModel.createPaymentIntent.mockResolvedValue(undefined);
-      mockZeusSubscriptionModel.createZeusSubscription.mockRejectedValue(dbError);
+      mockZeusSubscriptionModel.createZeusSubscription.mockRejectedValue(
+        dbError
+      );
 
       // Act
       await createZeusSubscriptionPaymentController(

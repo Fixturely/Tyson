@@ -94,11 +94,14 @@ describe('ZeusNotificationService', () => {
       });
       expect(body.timestamp).toBeDefined();
 
-      expect(logger.info).toHaveBeenCalledWith('Zeus notification sent successfully', {
-        subscription_id: 123,
-        status: 'succeeded',
-        response_status: 200,
-      });
+      expect(logger.info).toHaveBeenCalledWith(
+        'Zeus notification sent successfully',
+        {
+          subscription_id: 123,
+          status: 'succeeded',
+          response_status: 200,
+        }
+      );
     });
 
     it('should handle Zeus notification errors', async () => {
@@ -118,14 +121,17 @@ describe('ZeusNotificationService', () => {
 
       mockFetch.mockResolvedValue(mockResponse as Response);
 
-      await expect(service.notifyPaymentSucceeded(notificationData)).rejects.toThrow(
-        'Zeus notification failed: 500 Internal Server Error'
-      );
+      await expect(
+        service.notifyPaymentSucceeded(notificationData)
+      ).rejects.toThrow('Zeus notification failed: 500 Internal Server Error');
 
-      expect(logger.error).toHaveBeenCalledWith('Failed to send Zeus notification', {
-        subscription_id: 123,
-        error: 'Zeus notification failed: 500 Internal Server Error',
-      });
+      expect(logger.error).toHaveBeenCalledWith(
+        'Failed to send Zeus notification',
+        {
+          subscription_id: 123,
+          error: 'Zeus notification failed: 500 Internal Server Error',
+        }
+      );
     });
 
     it('should handle fetch errors', async () => {
@@ -140,12 +146,17 @@ describe('ZeusNotificationService', () => {
       const fetchError = new Error('Network error');
       mockFetch.mockRejectedValue(fetchError);
 
-      await expect(service.notifyPaymentSucceeded(notificationData)).rejects.toThrow('Network error');
+      await expect(
+        service.notifyPaymentSucceeded(notificationData)
+      ).rejects.toThrow('Network error');
 
-      expect(logger.error).toHaveBeenCalledWith('Failed to send Zeus notification', {
-        subscription_id: 123,
-        error: 'Network error',
-      });
+      expect(logger.error).toHaveBeenCalledWith(
+        'Failed to send Zeus notification',
+        {
+          subscription_id: 123,
+          error: 'Network error',
+        }
+      );
     });
   });
 
@@ -221,13 +232,13 @@ describe('ZeusNotificationService', () => {
     it('should log notification when webhook URL is not configured', async () => {
       // Clear mocks
       jest.clearAllMocks();
-      
+
       // Temporarily override config
       const originalConfig = config.zeus?.webhookUrl;
       (config as any).zeus.webhookUrl = '';
 
       const serviceWithoutUrl = new ZeusNotificationService();
-      
+
       const notificationData: ZeusNotificationData = {
         subscription_id: 123,
         user_id: 456,
@@ -254,5 +265,4 @@ describe('ZeusNotificationService', () => {
       (config as any).zeus.webhookUrl = originalConfig;
     });
   });
-
 });

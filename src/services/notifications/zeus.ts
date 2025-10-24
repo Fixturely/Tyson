@@ -21,15 +21,20 @@ export class ZeusNotificationService {
   private zeusWebhookUrl: string;
 
   constructor() {
-    this.zeusWebhookUrl = config.zeus?.webhookUrl || process.env.ZEUS_WEBHOOK_URL || '';
+    this.zeusWebhookUrl =
+      config.zeus?.webhookUrl ?? process.env.ZEUS_WEBHOOK_URL ?? '';
     if (!this.zeusWebhookUrl) {
-      logger.warn('ZEUS_WEBHOOK_URL not configured - notifications will be logged only');
+      logger.warn(
+        'ZEUS_WEBHOOK_URL not configured - notifications will be logged only'
+      );
     } else {
       this.zeusWebhookUrl += '/api/v1/subscriptions/webhook';
     }
   }
 
-  async notifyPaymentStatus(notificationData: ZeusNotificationData): Promise<void> {
+  async notifyPaymentStatus(
+    notificationData: ZeusNotificationData
+  ): Promise<void> {
     try {
       const payload = {
         subscription_id: notificationData.subscription_id,
@@ -56,7 +61,9 @@ export class ZeusNotificationService {
         });
 
         if (!response.ok) {
-          throw new Error(`Zeus notification failed: ${response.status} ${response.statusText}`);
+          throw new Error(
+            `Zeus notification failed: ${response.status} ${response.statusText}`
+          );
         }
 
         logger.info('Zeus notification sent successfully', {
@@ -77,21 +84,27 @@ export class ZeusNotificationService {
     }
   }
 
-  async notifyPaymentSucceeded(notificationData: ZeusNotificationData): Promise<void> {
+  async notifyPaymentSucceeded(
+    notificationData: ZeusNotificationData
+  ): Promise<void> {
     await this.notifyPaymentStatus({
       ...notificationData,
       status: 'succeeded',
     });
   }
 
-  async notifyPaymentFailed(notificationData: ZeusNotificationData): Promise<void> {
+  async notifyPaymentFailed(
+    notificationData: ZeusNotificationData
+  ): Promise<void> {
     await this.notifyPaymentStatus({
       ...notificationData,
       status: 'failed',
     });
   }
 
-  async notifyPaymentCanceled(notificationData: ZeusNotificationData): Promise<void> {
+  async notifyPaymentCanceled(
+    notificationData: ZeusNotificationData
+  ): Promise<void> {
     await this.notifyPaymentStatus({
       ...notificationData,
       status: 'canceled',

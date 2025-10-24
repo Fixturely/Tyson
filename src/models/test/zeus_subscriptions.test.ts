@@ -107,10 +107,14 @@ describe('ZeusSubscriptionModel', () => {
 
       mockQueryBuilder.first.mockResolvedValueOnce(mockSubscription);
 
-      const result = await model.getZeusSubscriptionByPaymentIntent('pi_test_123');
+      const result =
+        await model.getZeusSubscriptionByPaymentIntent('pi_test_123');
 
       expect(mockDb).toHaveBeenCalledWith('zeus_subscriptions');
-      expect(mockQueryBuilder.where).toHaveBeenCalledWith('payment_intent_id', 'pi_test_123');
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
+        'payment_intent_id',
+        'pi_test_123'
+      );
       expect(mockQueryBuilder.first).toHaveBeenCalled();
       expect(result).toEqual(mockSubscription);
     });
@@ -118,7 +122,8 @@ describe('ZeusSubscriptionModel', () => {
     it('should return null when subscription not found', async () => {
       mockQueryBuilder.first.mockResolvedValueOnce(null);
 
-      const result = await model.getZeusSubscriptionByPaymentIntent('pi_nonexistent');
+      const result =
+        await model.getZeusSubscriptionByPaymentIntent('pi_nonexistent');
 
       expect(result).toBeNull();
     });
@@ -142,10 +147,12 @@ describe('ZeusSubscriptionModel', () => {
       await model.updateZeusSubscriptionStatus(123, 'succeeded');
 
       expect(mockDb).toHaveBeenCalledWith('zeus_subscriptions');
-      expect(mockQueryBuilder.where).toHaveBeenCalledWith('subscription_id', 123);
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
+        'subscription_id',
+        123
+      );
       expect(mockQueryBuilder.update).toHaveBeenCalledWith({
         status: 'succeeded',
-        updated_at: expect.any(Date),
       });
       expect(mockLogger.info).toHaveBeenCalledWith(
         'Zeus subscription 123 status updated to succeeded'
@@ -158,7 +165,6 @@ describe('ZeusSubscriptionModel', () => {
 
       expect(mockQueryBuilder.update).toHaveBeenCalledWith({
         status: 'succeeded',
-        updated_at: expect.any(Date),
         paid_at: paidAt,
       });
     });
@@ -182,11 +188,13 @@ describe('ZeusSubscriptionModel', () => {
       await model.markZeusNotified(123);
 
       expect(mockDb).toHaveBeenCalledWith('zeus_subscriptions');
-      expect(mockQueryBuilder.where).toHaveBeenCalledWith('subscription_id', 123);
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
+        'subscription_id',
+        123
+      );
       expect(mockQueryBuilder.update).toHaveBeenCalledWith({
         zeus_notified_at: expect.any(Date),
         zeus_notification_attempts: 1,
-        updated_at: expect.any(Date),
       });
       expect(mockLogger.info).toHaveBeenCalledWith(
         'Zeus subscription 123 marked as notified'
@@ -199,7 +207,6 @@ describe('ZeusSubscriptionModel', () => {
       expect(mockQueryBuilder.update).toHaveBeenCalledWith({
         zeus_notified_at: expect.any(Date),
         zeus_notification_attempts: 3,
-        updated_at: expect.any(Date),
       });
     });
 
@@ -207,9 +214,9 @@ describe('ZeusSubscriptionModel', () => {
       const dbError = new Error('Database update failed');
       mockQueryBuilder.update.mockRejectedValueOnce(dbError);
 
-      await expect(
-        model.markZeusNotified(123)
-      ).rejects.toThrow('Database update failed');
+      await expect(model.markZeusNotified(123)).rejects.toThrow(
+        'Database update failed'
+      );
 
       expect(mockLogger.error).toHaveBeenCalledWith(
         'Error marking Zeus subscription as notified: Error: Database update failed'
