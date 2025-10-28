@@ -1,5 +1,6 @@
 import logger from '../../utils/logger';
 import config from '../../../config';
+import { computeHMAC } from '../../utils/hmac';
 
 export interface ZeusNotificationData {
   subscription_id: number;
@@ -19,6 +20,7 @@ export interface ZeusNotificationData {
 
 export class ZeusNotificationService {
   private zeusWebhookUrl: string;
+  private webhookSecret: string;
 
   constructor() {
     this.zeusWebhookUrl =
@@ -28,7 +30,12 @@ export class ZeusNotificationService {
         'ZEUS_WEBHOOK_URL not configured - notifications will be logged only'
       );
     } else {
-      this.zeusWebhookUrl += '/api/v1/subscriptions/webhook';
+      this.zeusWebhookUrl += '/v1/subscriptions/webhook';
+    }
+    
+    this.webhookSecret = config.zeus?.webhookSecret ?? '';
+    if (!this.webhookSecret) {
+      logger.warn('ZEUS_WEBHOOK_SECRET not configured - notifications will be unsigned');
     }
   }
 
@@ -50,14 +57,26 @@ export class ZeusNotificationService {
       };
 
       if (this.zeusWebhookUrl) {
+        // Stringify payload once to ensure signature matches body
+        const payloadString = JSON.stringify(payload);
+        
+        // Prepare headers
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+          'User-Agent': 'Tyson-Billing-Service/1.0',
+        };
+        
+        // Add HMAC signature if secret is configured
+        if (this.webhookSecret) {
+          const signature = computeHMAC(payloadString, this.webhookSecret);
+          headers['X-Tyson-Signature'] = signature;
+        }
+        
         // Send HTTP notification to Zeus
         const response = await fetch(this.zeusWebhookUrl, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'User-Agent': 'Tyson-Billing-Service/1.0',
-          },
-          body: JSON.stringify(payload),
+          headers,
+          body: payloadString,
         });
 
         if (!response.ok) {

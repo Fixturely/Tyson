@@ -104,7 +104,8 @@ async function handleZeusSubscription(
   } catch (notificationError) {
     logger.error(`Failed to notify Zeus of ${status} payment`, {
       subscription_id: subscription.subscription_id,
-      error: notificationError,
+      error: notificationError instanceof Error ? notificationError.message : String(notificationError),
+      errorStack: notificationError instanceof Error ? notificationError.stack : undefined,
     });
   }
 }
@@ -148,8 +149,13 @@ router.post('/', async (req: express.Request, res: express.Response) => {
       data: event.data.object,
       processed: false,
     });
-  } catch (error) {
-    logger.error('Failed to store webhook event', { eventId: event.id, error });
+  } catch (error: any) {
+    // Ignore duplicate key errors (webhook already processed)
+    if (error?.code === '23505' || error?.constraint === 'webhook_events_pkey') {
+      logger.info('Webhook event already exists in database', { eventId: event.id });
+    } else {
+      logger.error('Failed to store webhook event', { eventId: event.id, error });
+    }
     // Continue processing even if storage fails
   }
 

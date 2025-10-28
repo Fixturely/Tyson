@@ -35,7 +35,7 @@ function registerRoutes(app: express.Application) {
 registerRoutes(app);
 
 if (process.env.NODE_ENV !== 'test') {
-  app.listen(config.port, () => {
+  app.listen(Number(config.port), '0.0.0.0', () => {
     logger.info(`Server is running on port ${config.port}`);
   });
 }
