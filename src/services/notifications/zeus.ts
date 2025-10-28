@@ -35,7 +35,7 @@ export class ZeusNotificationService {
     
     this.webhookSecret = config.zeus?.webhookSecret ?? '';
     if (!this.webhookSecret) {
-      logger.warn('WEBHOOK_SECRET not configured - notifications will be unsigned');
+      logger.warn('ZEUS_WEBHOOK_SECRET not configured - notifications will be unsigned');
     }
   }
 

@@ -12,21 +12,3 @@ export function computeHMAC(payload: string, secret: string): string {
   return hmac.digest('hex');
 }
 
-/**
- * Verifies HMAC signature using constant-time comparison
- * @param signature - The signature from the header
- * @param payload - The payload to verify
- * @param secret - The shared secret key
- * @returns true if signature is valid, false otherwise
- */
-export function verifyHMAC(
-  signature: string,
-  payload: string,
-  secret: string
-): boolean {
-  const computedSignature = computeHMAC(payload, secret);
-  return crypto.timingSafeEqual(
-    Buffer.from(signature),
-    Buffer.from(computedSignature)
-  );
-}
