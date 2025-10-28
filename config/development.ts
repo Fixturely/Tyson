@@ -10,5 +10,6 @@ export default {
   },
   zeus: {
     webhookUrl: process.env.ZEUS_WEBHOOK_URL || 'http://localhost:8080',
+    webhookSecret: process.env.ZEUS_WEBHOOK_SECRET || '',
   }
 };
