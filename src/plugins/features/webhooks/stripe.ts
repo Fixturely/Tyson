@@ -104,8 +104,14 @@ async function handleZeusSubscription(
   } catch (notificationError) {
     logger.error(`Failed to notify Zeus of ${status} payment`, {
       subscription_id: subscription.subscription_id,
-      error: notificationError instanceof Error ? notificationError.message : String(notificationError),
-      errorStack: notificationError instanceof Error ? notificationError.stack : undefined,
+      error:
+        notificationError instanceof Error
+          ? notificationError.message
+          : String(notificationError),
+      errorStack:
+        notificationError instanceof Error
+          ? notificationError.stack
+          : undefined,
     });
   }
 }
@@ -130,33 +136,45 @@ router.post('/', async (req: express.Request, res: express.Response) => {
     return res.status(400).json({ error: 'Invalid signature' });
   }
 
-  // Check idempotency
-  if (idempotencyKeyStore.hasProcessed(event.id)) {
+  // Extract payment intent ID early for tracking
+  const dataObject = event.data.object as any;
+  const paymentIntentId =
+    dataObject.object === 'payment_intent'
+      ? dataObject.id
+      : dataObject.payment_intent;
+
+  // Check idempotency (fast duplicate detection)
+  if (await idempotencyKeyStore.hasProcessed(event.id)) {
     logger.info(`Event already processed: ${event.id}`);
     return res.status(200).json({ message: 'Event already processed' });
   }
 
-  // Store webhook event in database
+  // Store webhook event in database (for audit trail and retry logic)
   try {
-    const dataObject = event.data.object as any;
     await webhookEventDbService.createWebhookEvent({
       id: event.id,
       type: event.type,
-      payment_intent_id:
-        dataObject.object === 'payment_intent'
-          ? dataObject.id
-          : dataObject.payment_intent,
+      payment_intent_id: paymentIntentId,
       data: event.data.object,
       processed: false,
     });
   } catch (error: any) {
-    // Ignore duplicate key errors (webhook already processed)
-    if (error?.code === '23505' || error?.constraint === 'webhook_events_pkey') {
-      logger.info('Webhook event already exists in database', { eventId: event.id });
+    // If webhook_events table has duplicate, that's okay - we also check idempotency
+    if (
+      error?.code === '23505' ||
+      error?.constraint === 'webhook_events_pkey'
+    ) {
+      logger.warn('Webhook event already in audit table', {
+        eventId: event.id,
+      });
+      // Note: This shouldn't happen if idempotency is working, but log it
     } else {
-      logger.error('Failed to store webhook event', { eventId: event.id, error });
+      logger.error('Failed to store webhook event in audit table', {
+        eventId: event.id,
+        error,
+      });
+      // Continue processing - audit trail failure shouldn't stop webhook
     }
-    // Continue processing even if storage fails
   }
 
   try {
@@ -336,25 +354,50 @@ router.post('/', async (req: express.Request, res: express.Response) => {
         break;
     }
 
-    // Mark event as processed
+    // Mark event as processed (audit trail)
     await webhookEventDbService.markWebhookEventAsProcessed(event.id);
-    idempotencyKeyStore.markProcessed(event.id);
+
+    // Mark as idempotent (prevents future duplicates)
+    await idempotencyKeyStore.markProcessed(event.id, event.type, {
+      payment_intent_id: paymentIntentId,
+      success: true,
+    });
+
     return res.status(200).json({ message: 'Webhook received' });
   } catch (error) {
     logger.error(`Error processing event: ${error}`);
-    await webhookEventDbService.markWebhookEventAsProcessed(
-      event.id,
-      error instanceof Error ? error.message : 'Unknown error'
-    );
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown error';
+
+    try {
+      // Mark in audit trail as failed
+      await webhookEventDbService.markWebhookEventAsProcessed(
+        event.id,
+        errorMessage
+      );
+
+      // Mark as idempotent so we don't retry automatically
+      await idempotencyKeyStore.markProcessed(event.id, event.type, {
+        payment_intent_id: paymentIntentId,
+        success: false,
+        error: errorMessage,
+      });
+    } catch (markingError) {
+      logger.error('Failed to mark event as processed after an error', {
+        originalError: error,
+        markingError,
+        eventId: event.id,
+      });
+    }
 
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // Stats endpoint for monitoring
-router.get('/stats', (req, res) => {
+router.get('/stats', async (req, res) => {
   try {
-    const stats = idempotencyKeyStore.getStats();
+    const stats = await idempotencyKeyStore.getStats();
     res.json({
       idempotency: stats,
       timestamp: new Date().toISOString(),

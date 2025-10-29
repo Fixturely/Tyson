@@ -1,50 +1,123 @@
 import { idempotencyKeyStore } from './index';
+import { processedBillingEventModel } from '../../models/processed_billing_events';
 
-describe('Idempotency Key Store', () => {
+// Mock the processed billing events model
+jest.mock('../../models/processed_billing_events', () => ({
+  processedBillingEventModel: {
+    hasProcessed: jest.fn(),
+    markProcessed: jest.fn(),
+    cleanup: jest.fn(),
+    getStats: jest.fn(),
+  },
+}));
+
+describe('Idempotency Key Store (Database-backed)', () => {
   beforeEach(() => {
-    idempotencyKeyStore.reset();
+    jest.clearAllMocks();
   });
 
-  it('should track processed events', () => {
-    const eventId = 'evt_test_123';
-    expect(idempotencyKeyStore.hasProcessed(eventId)).toBe(false);
-    idempotencyKeyStore.markProcessed(eventId);
-    expect(idempotencyKeyStore.hasProcessed(eventId)).toBe(true);
+  describe('hasProcessed', () => {
+    it('should return false when event not processed', async () => {
+      (processedBillingEventModel.hasProcessed as jest.Mock).mockResolvedValue(
+        false
+      );
+
+      const result = await idempotencyKeyStore.hasProcessed('evt_test_123');
+
+      expect(result).toBe(false);
+      expect(processedBillingEventModel.hasProcessed).toHaveBeenCalledWith(
+        'evt_test_123'
+      );
+    });
+
+    it('should return true when event already processed', async () => {
+      (processedBillingEventModel.hasProcessed as jest.Mock).mockResolvedValue(
+        true
+      );
+
+      const result = await idempotencyKeyStore.hasProcessed('evt_test_123');
+
+      expect(result).toBe(true);
+      expect(processedBillingEventModel.hasProcessed).toHaveBeenCalledWith(
+        'evt_test_123'
+      );
+    });
   });
 
-  it('should not process the same event twice', () => {
-    const eventId = 'evt_test_456';
+  describe('markProcessed', () => {
+    it('should mark event as processed with metadata', async () => {
+      const eventId = 'evt_test_456';
+      const eventType = 'payment_intent.succeeded';
+      const metadata = {
+        payment_intent_id: 'pi_xyz789',
+        success: true,
+      };
 
-    // First time
-    expect(idempotencyKeyStore.hasProcessed(eventId)).toBe(false);
-    idempotencyKeyStore.markProcessed(eventId);
+      await idempotencyKeyStore.markProcessed(eventId, eventType, metadata);
 
-    // Second time
-    expect(idempotencyKeyStore.hasProcessed(eventId)).toBe(true);
+      expect(processedBillingEventModel.markProcessed).toHaveBeenCalledWith(
+        eventId,
+        eventType,
+        metadata
+      );
+    });
+
+    it('should mark failed event with error message', async () => {
+      const eventId = 'evt_test_789';
+      const eventType = 'payment_intent.payment_failed';
+      const metadata = {
+        payment_intent_id: 'pi_abc123',
+        success: false,
+        error: 'Card declined',
+      };
+
+      await idempotencyKeyStore.markProcessed(eventId, eventType, metadata);
+
+      expect(processedBillingEventModel.markProcessed).toHaveBeenCalledWith(
+        eventId,
+        eventType,
+        metadata
+      );
+    });
   });
-  it('should return correct stats', () => {
-    expect(idempotencyKeyStore.getStats().totalProcessed).toBe(0);
 
-    idempotencyKeyStore.markProcessed('evt_1');
-    idempotencyKeyStore.markProcessed('evt_2');
+  describe('cleanup', () => {
+    it('should cleanup old processed events', async () => {
+      (processedBillingEventModel.cleanup as jest.Mock).mockResolvedValue(5);
 
-    const stats = idempotencyKeyStore.getStats();
-    expect(stats.totalProcessed).toBe(2);
-    expect(stats.oldestEvent).toBeDefined();
+      await idempotencyKeyStore.cleanup(24);
+
+      expect(processedBillingEventModel.cleanup).toHaveBeenCalledWith(24);
+    });
+
+    it('should use default cleanup hours when not specified', async () => {
+      await idempotencyKeyStore.cleanup();
+
+      expect(processedBillingEventModel.cleanup).toHaveBeenCalledWith(24);
+    });
   });
 
-  it('should cleanup old events', () => {
-    const eventId = 'evt_old';
-    idempotencyKeyStore.markProcessed(eventId);
+  describe('getStats', () => {
+    it('should return statistics', async () => {
+      const mockStats = {
+        total_processed: 10,
+        failed_count: 2,
+      };
 
-    // Mock old timestamp
-    const oldDate = new Date(Date.now() - 25 * 60 * 60 * 1000); // 25 hours ago
-    idempotencyKeyStore['eventTimestamps'].set(eventId, oldDate);
+      (processedBillingEventModel.getStats as jest.Mock).mockResolvedValue(
+        mockStats
+      );
 
-    expect(idempotencyKeyStore.hasProcessed(eventId)).toBe(true);
+      const stats = await idempotencyKeyStore.getStats();
 
-    idempotencyKeyStore.cleanup(24 * 60 * 60 * 1000); // 24 hours
+      expect(stats).toEqual(mockStats);
+      expect(processedBillingEventModel.getStats).toHaveBeenCalled();
+    });
+  });
 
-    expect(idempotencyKeyStore.hasProcessed(eventId)).toBe(false);
+  describe('reset', () => {
+    it('should reset without errors', async () => {
+      await expect(idempotencyKeyStore.reset()).resolves.not.toThrow();
+    });
   });
 });

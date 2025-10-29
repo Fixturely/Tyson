@@ -11,4 +11,3 @@ export function computeHMAC(payload: string, secret: string): string {
   hmac.update(payload);
   return hmac.digest('hex');
 }
-
