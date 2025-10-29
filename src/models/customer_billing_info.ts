@@ -17,6 +17,22 @@ export type CustomerBillingInfoData = {
 };
 
 export class CustomerBillingInfoModel {
+  private buildRecordFromStripe(
+    customer: Stripe.Customer
+  ): CustomerBillingInfoData {
+    return {
+      customer_id: customer.id,
+      email: customer.email || '',
+      name: customer.name || null,
+      address_line_1: customer.address?.line1 || null,
+      address_line_2: customer.address?.line2 || null,
+      city: customer.address?.city || null,
+      state: customer.address?.state || null,
+      postal_code: customer.address?.postal_code || null,
+      country: customer.address?.country || null,
+      updated_at: new Date(),
+    };
+  }
   async createCustomerBillingInfo(
     customerBillingInfoData: CustomerBillingInfoData
   ): Promise<void> {
@@ -28,59 +44,10 @@ export class CustomerBillingInfoModel {
     }
   }
 
-  async upsertFromStripe(customer: Stripe.Customer): Promise<void> {
-    try {
-      const record: CustomerBillingInfoData = {
-        customer_id: customer.id,
-        email: customer.email || '',
-        name: (customer.name || '') as string,
-        address_line_1: customer.address?.line1 || null,
-        address_line_2: customer.address?.line2 || null,
-        city: customer.address?.city || null,
-        state: customer.address?.state || null,
-        postal_code: customer.address?.postal_code || null,
-        country: customer.address?.country || null,
-        updated_at: new Date(),
-      };
-
-      // Backwards-compat method: defaults to authoritative merge by customer_id
-      await db('customer_billing_info')
-        .insert(record)
-        .onConflict('customer_id')
-        .merge({
-          email: record.email,
-          name: record.name ?? null,
-          address_line_1: record.address_line_1 ?? null,
-          address_line_2: record.address_line_2 ?? null,
-          city: record.city ?? null,
-          state: record.state ?? null,
-          postal_code: record.postal_code ?? null,
-          country: record.country ?? null,
-          updated_at: record.updated_at,
-        });
-    } catch (error) {
-      logger.error(
-        `Error upserting customer billing info from Stripe: ${error}`
-      );
-      throw error;
-    }
-  }
-
   // Insert if absent; do NOT overwrite existing data (for payment flows)
   async ensureExistsFromStripe(customer: Stripe.Customer): Promise<void> {
     try {
-      const record: CustomerBillingInfoData = {
-        customer_id: customer.id,
-        email: customer.email || '',
-        name: (customer.name || '') as string,
-        address_line_1: customer.address?.line1 || null,
-        address_line_2: customer.address?.line2 || null,
-        city: customer.address?.city || null,
-        state: customer.address?.state || null,
-        postal_code: customer.address?.postal_code || null,
-        country: customer.address?.country || null,
-        updated_at: new Date(),
-      };
+      const record = this.buildRecordFromStripe(customer);
 
       await db('customer_billing_info')
         .insert(record)
@@ -95,33 +62,13 @@ export class CustomerBillingInfoModel {
   // Authoritative update from Stripe (webhook-driven)
   async updateFromStripe(customer: Stripe.Customer): Promise<void> {
     try {
-      const record: CustomerBillingInfoData = {
-        customer_id: customer.id,
-        email: customer.email || '',
-        name: (customer.name || '') as string,
-        address_line_1: customer.address?.line1 || null,
-        address_line_2: customer.address?.line2 || null,
-        city: customer.address?.city || null,
-        state: customer.address?.state || null,
-        postal_code: customer.address?.postal_code || null,
-        country: customer.address?.country || null,
-        updated_at: new Date(),
-      };
+      const record = this.buildRecordFromStripe(customer);
+      const { customer_id, ...updateData } = record;
 
       await db('customer_billing_info')
         .insert(record)
         .onConflict('customer_id')
-        .merge({
-          email: record.email,
-          name: record.name ?? null,
-          address_line_1: record.address_line_1 ?? null,
-          address_line_2: record.address_line_2 ?? null,
-          city: record.city ?? null,
-          state: record.state ?? null,
-          postal_code: record.postal_code ?? null,
-          country: record.country ?? null,
-          updated_at: record.updated_at,
-        });
+        .merge(updateData);
     } catch (error) {
       logger.error(
         `Error updating customer billing info from Stripe: ${error}`
