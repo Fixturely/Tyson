@@ -1,53 +1,38 @@
-// Simple in-memory idempotency key store
-// Todo - Change to Redis or DB in staging/production
+import { processedBillingEventModel } from '../../models/processed_billing_events';
+
+/**
+ * Idempotency key store - now backed by database
+ * Prevents duplicate webhook processing
+ */
 class IdempotencyKeyStore {
-  private processedEvents = new Set<string>();
-  private eventTimestamps = new Map<string, Date>();
-
   // Function to check if event is already processed
-  hasProcessed(eventId: string): boolean {
-    return this.processedEvents.has(eventId);
+  async hasProcessed(eventId: string): Promise<boolean> {
+    return await processedBillingEventModel.hasProcessed(eventId);
   }
 
-  // Function to mark event as processed
-  markProcessed(eventId: string): void {
-    this.processedEvents.add(eventId);
-    this.eventTimestamps.set(eventId, new Date());
+  // Function to mark event as processed (insert or update)
+  async markProcessed(
+    eventId: string,
+    eventType: string,
+    metadata: { payment_intent_id?: string; success?: boolean; error?: string }
+  ): Promise<void> {
+    await processedBillingEventModel.markProcessed(eventId, eventType, metadata);
   }
 
-  // Clean up old events (optional - prevents memory leaks)
-  cleanup(maxAgeMs: number = 24 * 60 * 60 * 1000): void {
-    // 24 hours
-    const now = Date.now();
-    for (const eventId of this.processedEvents.keys()) {
-      const timestamp = this.eventTimestamps.get(eventId);
-      if (!timestamp) continue;
-      if (now - timestamp.getTime() > maxAgeMs) {
-        this.processedEvents.delete(eventId);
-        this.eventTimestamps.delete(eventId);
-      }
-    }
+  // Clean up old events (cleanup every 24 hours)
+  async cleanup(maxAgeHours: number = 24): Promise<void> {
+    await processedBillingEventModel.cleanup(maxAgeHours);
   }
 
   // Get stats (for monitoring)
-  getStats() {
-    return {
-      totalProcessed: this.processedEvents.size,
-      oldestEvent:
-        this.eventTimestamps.size > 0
-          ? Math.min(
-              ...Array.from(this.eventTimestamps.values()).map(date =>
-                date.getTime()
-              )
-            )
-          : null,
-    };
+  async getStats() {
+    return await processedBillingEventModel.getStats();
   }
 
   // For testing purposes only
-  public reset(): void {
-    this.processedEvents.clear();
-    this.eventTimestamps.clear();
+  public async reset(): Promise<void> {
+    // Note: In production, you might want to delete test data manually
+    // This method is primarily for test cleanup
   }
 }
 

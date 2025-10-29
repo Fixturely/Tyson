@@ -62,7 +62,7 @@ describe('ZeusNotificationService', () => {
       await service.notifyPaymentSucceeded(notificationData);
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:8080/api/v1/subscriptions/webhook',
+        'http://localhost:8080/v1/subscriptions/webhook',
         expect.objectContaining({
           method: 'POST',
           headers: {

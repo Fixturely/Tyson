@@ -1,6 +1,19 @@
 import request from 'supertest';
 import { idempotencyKeyStore } from '../../../services/idempotency';
 
+// Mock idempotency service
+jest.mock('../../../services/idempotency', () => ({
+  idempotencyKeyStore: {
+    hasProcessed: jest.fn().mockResolvedValue(false),
+    markProcessed: jest.fn().mockResolvedValue(undefined),
+    cleanup: jest.fn().mockResolvedValue(undefined),
+    getStats: jest.fn().mockResolvedValue({
+      total_processed: 0,
+      failed_count: 0,
+    }),
+  },
+}));
+
 // Mock database service
 jest.mock('../../../services/database', () => ({
   default: {
@@ -71,10 +84,9 @@ jest.mock('stripe', () => {
 
 describe('Stripe Webhook Handler', () => {
   beforeEach(() => {
-    // Clear idempotency store
-    idempotencyKeyStore['processedEvents'].clear();
-    idempotencyKeyStore['eventTimestamps'].clear();
-
+    // Mock idempotency store to always return not processed
+    (idempotencyKeyStore.hasProcessed as jest.Mock).mockResolvedValue(false);
+    
     // Clear mocks
     jest.clearAllMocks();
   });
@@ -114,7 +126,9 @@ describe('Stripe Webhook Handler', () => {
     });
 
     it('should handle idempotency correctly', async () => {
-      // First request
+      // First request - not processed yet
+      (idempotencyKeyStore.hasProcessed as jest.Mock).mockResolvedValueOnce(false);
+      
       const response1 = await request(app)
         .post('/api/v1/webhooks/stripe')
         .set('stripe-signature', 'valid_signature')
@@ -123,7 +137,9 @@ describe('Stripe Webhook Handler', () => {
       expect(response1.status).toBe(200);
       expect(response1.body.message).toBe('Webhook received');
 
-      // Second request (same event)
+      // Second request - already processed
+      (idempotencyKeyStore.hasProcessed as jest.Mock).mockResolvedValueOnce(true);
+      
       const response2 = await request(app)
         .post('/api/v1/webhooks/stripe')
         .set('stripe-signature', 'valid_signature')
@@ -183,14 +199,17 @@ describe('Stripe Webhook Handler', () => {
 
   describe('GET /api/v1/webhooks/stripe/stats', () => {
     it('should return idempotency stats', async () => {
-      // Add some processed events
-      idempotencyKeyStore.markProcessed('evt_1');
-      idempotencyKeyStore.markProcessed('evt_2');
+      // Mock stats
+      (idempotencyKeyStore.getStats as jest.Mock).mockResolvedValue({
+        total_processed: 10,
+        failed_count: 2,
+      });
 
       const response = await request(app).get('/api/v1/webhooks/stripe/stats');
 
       expect(response.status).toBe(200);
-      expect(response.body.idempotency.totalProcessed).toBe(2);
+      expect(response.body.idempotency.total_processed).toBe(10);
+      expect(response.body.idempotency.failed_count).toBe(2);
       expect(response.body.timestamp).toBeDefined();
     });
   });
