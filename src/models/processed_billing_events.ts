@@ -2,7 +2,7 @@ import db from "../services/database";
 import logger from "../utils/logger";
 
 export interface ProcessedBillingEventData {
-  id?: string;
+  id?: number;
   event_id: string;
   event_type: string;
   payment_intent_id?: string | null;
@@ -23,10 +23,10 @@ export class ProcessedBillingEventModel {
         }
     }
 
-    async getProcessedBillingEventById(id: string): Promise<ProcessedBillingEventData | null> {
+    async getProcessedBillingEventById(id: number): Promise<ProcessedBillingEventData | null> {
         try {
             const event = await db('processed_billing_events').where('id', id).first();
-            return event as unknown as ProcessedBillingEventData | null;
+            return event as ProcessedBillingEventData | null;
         } catch (error) {
             logger.error(`Error getting processed billing event by id: ${error}`);
             throw error;
@@ -47,8 +47,12 @@ export class ProcessedBillingEventModel {
 
     async hasProcessed(eventId: string): Promise<boolean> {
         try {
-            const event = await this.getProcessedBillingEventsByEventId(eventId);
-            return event !== null;
+            const result = await db('processed_billing_events')
+                .where('event_id', eventId)
+                .count<{ count: number }>('id as count')
+                .first();
+            // Knex returns an object with count property, check if greater than 0
+            return Number(result?.count || 0) > 0;
         } catch (error) {
             logger.error(`Error checking if event has been processed: ${error}`);
             throw error;
@@ -62,31 +66,28 @@ export class ProcessedBillingEventModel {
         metadata: { payment_intent_id?: string; success?: boolean; error?: string }
     ): Promise<void> {
         try {
-            const existing = await this.hasProcessed(eventId);
-            
-            if (existing) {
-                // Update existing record
-                await db('processed_billing_events')
-                    .where('event_id', eventId)
-                    .update({
-                        processed_at: new Date(),
-                        success: metadata.success ?? true,
-                        error_message: metadata.error || null,
-                        payment_intent_id: metadata.payment_intent_id,
-                    });
-                logger.info(`Updated processed billing event: ${eventId}`);
-            } else {
-                // Insert new record
-                await db('processed_billing_events').insert({
-                    event_id: eventId,
-                    event_type: eventType,
-                    payment_intent_id: metadata.payment_intent_id || null,
-                    processed_at: new Date(),
-                    success: metadata.success ?? true,
-                    error_message: metadata.error || null,
+            const data = {
+                event_id: eventId,
+                event_type: eventType,
+                payment_intent_id: metadata.payment_intent_id || null,
+                processed_at: new Date(),
+                success: metadata.success ?? true,
+                error_message: metadata.error || null,
+            };
+
+            await db('processed_billing_events')
+                .insert(data)
+                .onConflict('event_id')
+                .merge({
+                    // Update these fields if record already exists
+                    payment_intent_id: data.payment_intent_id,
+                    processed_at: data.processed_at,
+                    success: data.success,
+                    error_message: data.error_message,
+                    updated_at: new Date(),
                 });
-                logger.info(`Created processed billing event: ${eventId}`);
-            }
+
+            logger.info(`Marked event as processed: ${eventId}`);
         } catch (error) {
             logger.error(`Error marking event as processed: ${error}`);
             throw error;

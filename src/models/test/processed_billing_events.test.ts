@@ -1,5 +1,4 @@
-import { ProcessedBillingEventModel, ProcessedBillingEventData } from '../processed_billing_events';
-import db from '../../services/database';
+import { ProcessedBillingEventModel } from '../processed_billing_events';
 
 // Mock the database
 jest.mock('../../services/database', () => {
@@ -12,6 +11,8 @@ jest.mock('../../services/database', () => {
     count: jest.fn().mockReturnThis(),
     orderBy: jest.fn().mockReturnThis(),
     delete: jest.fn().mockResolvedValue(0),
+    onConflict: jest.fn().mockReturnThis(),
+    merge: jest.fn().mockResolvedValue(1),
   };
 
   const mockDb = jest.fn(() => mockQueryBuilder);
@@ -48,7 +49,7 @@ describe('ProcessedBillingEventModel', () => {
 
   describe('hasProcessed', () => {
     it('should return false when event not processed', async () => {
-      mockQueryBuilder.first.mockResolvedValueOnce(null);
+      mockQueryBuilder.first.mockResolvedValueOnce({ count: 0 });
 
       const result = await model.hasProcessed('evt_test_123');
 
@@ -58,14 +59,7 @@ describe('ProcessedBillingEventModel', () => {
     });
 
     it('should return true when event already processed', async () => {
-      const mockEvent = {
-        id: '123',
-        event_id: 'evt_test_456',
-        event_type: 'payment_intent.succeeded',
-        processed_at: new Date(),
-        success: true,
-      };
-      mockQueryBuilder.first.mockResolvedValueOnce(mockEvent);
+      mockQueryBuilder.first.mockResolvedValueOnce({ count: 1 });
 
       const result = await model.hasProcessed('evt_test_456');
 
@@ -81,10 +75,7 @@ describe('ProcessedBillingEventModel', () => {
   });
 
   describe('markProcessed', () => {
-    it('should insert new event when not exists', async () => {
-      // hasProcessed returns false
-      mockQueryBuilder.first.mockResolvedValueOnce(null);
-
+    it('should use upsert to insert or update event', async () => {
       await model.markProcessed('evt_new_event', 'payment_intent.succeeded', {
         payment_intent_id: 'pi_xyz',
         success: true,
@@ -98,33 +89,47 @@ describe('ProcessedBillingEventModel', () => {
         error_message: null,
         processed_at: expect.any(Date),
       });
+      expect(mockQueryBuilder.onConflict).toHaveBeenCalledWith('event_id');
+      expect(mockQueryBuilder.merge).toHaveBeenCalledWith({
+        payment_intent_id: 'pi_xyz',
+        processed_at: expect.any(Date),
+        success: true,
+        error_message: null,
+        updated_at: expect.any(Date),
+      });
     });
 
-    it('should update existing event', async () => {
-      const existingEvent = { event_id: 'evt_existing' };
-      mockQueryBuilder.first.mockResolvedValueOnce(existingEvent);
-
+    it('should update existing event with new metadata', async () => {
       await model.markProcessed('evt_existing', 'payment_intent.succeeded', {
         payment_intent_id: 'pi_updated',
         success: false,
         error: 'Payment failed',
       });
 
-      expect(mockQueryBuilder.update).toHaveBeenCalledWith({
+      expect(mockQueryBuilder.insert).toHaveBeenCalledWith({
+        event_id: 'evt_existing',
+        event_type: 'payment_intent.succeeded',
+        payment_intent_id: 'pi_updated',
+        success: false,
+        error_message: 'Payment failed',
+        processed_at: expect.any(Date),
+      });
+      expect(mockQueryBuilder.onConflict).toHaveBeenCalledWith('event_id');
+      expect(mockQueryBuilder.merge).toHaveBeenCalledWith({
+        payment_intent_id: 'pi_updated',
         processed_at: expect.any(Date),
         success: false,
         error_message: 'Payment failed',
-        payment_intent_id: 'pi_updated',
+        updated_at: expect.any(Date),
       });
     });
 
     it('should handle errors during markProcessed', async () => {
-      mockQueryBuilder.first.mockResolvedValueOnce(null);
-      mockQueryBuilder.insert.mockRejectedValueOnce(new Error('Insert failed'));
+      mockQueryBuilder.merge.mockRejectedValueOnce(new Error('Upsert failed'));
 
       await expect(
         model.markProcessed('evt_error', 'payment_intent.succeeded', {})
-      ).rejects.toThrow('Insert failed');
+      ).rejects.toThrow('Upsert failed');
     });
   });
 

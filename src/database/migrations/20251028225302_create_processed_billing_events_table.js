@@ -4,7 +4,7 @@
  */
 exports.up = function(knex) {
     return knex.schema.createTable('processed_billing_events', function(table) {
-        table.string('id').primary(); // Primary key for the record
+        table.increments('id').primary(); // Auto-incrementing primary key
         table.string('event_id').notNullable().unique(); // Stripe Event ID (evt_xxx)
         table.string('event_type').notNullable();
         table.string('payment_intent_id').nullable();
