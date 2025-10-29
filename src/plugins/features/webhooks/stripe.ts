@@ -5,6 +5,7 @@ import config from '../../../../config';
 import { idempotencyKeyStore } from '../../../services/idempotency/index';
 import { webhookEventDbService } from '../../../models/webhook_events';
 import { zeusSubscriptionModel } from '../../../models/zeus_subscriptions';
+import { customerBillingInfoModel } from '../../../models/customer_billing_info';
 import {
   ZeusNotificationData,
   zeusNotificationService,
@@ -271,7 +272,8 @@ router.post('/', async (req: express.Request, res: express.Response) => {
           id: customerCreated.id,
           email: customerCreated.email,
         });
-        // TODO: Store customer in database
+        // Authoritative write from Stripe: create or update billing info
+        await customerBillingInfoModel.updateFromStripe(customerCreated);
         break;
 
       case 'customer.updated':
@@ -280,7 +282,8 @@ router.post('/', async (req: express.Request, res: express.Response) => {
           id: customerUpdated.id,
           email: customerUpdated.email,
         });
-        // TODO: Update customer in database
+        // Authoritative write from Stripe: merge latest billing info
+        await customerBillingInfoModel.updateFromStripe(customerUpdated);
         break;
 
       // Subscription Events (for future use)

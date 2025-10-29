@@ -36,6 +36,13 @@ jest.mock('../../../models/webhook_events', () => ({
   },
 }));
 
+// Mock customer billing info model
+jest.mock('../../../models/customer_billing_info', () => ({
+  customerBillingInfoModel: {
+    updateFromStripe: jest.fn().mockResolvedValue(undefined),
+  },
+}));
+
 // Mock Zeus subscription model
 jest.mock('../../../models/zeus_subscriptions', () => ({
   zeusSubscriptionModel: {
@@ -62,21 +69,54 @@ jest.mock('stripe', () => {
   return jest.fn().mockImplementation(() => ({
     webhooks: {
       constructEvent: jest.fn((body, sig, secret) => {
-        if (sig === 'valid_signature') {
+        if (sig !== 'valid_signature') {
+          throw new Error('Invalid signature');
+        }
+
+        // Body may be Buffer or object in tests; try to read type
+        let parsedType: string | undefined;
+        try {
+          if (typeof body === 'string') {
+            parsedType = JSON.parse(body)?.type;
+          } else if (Buffer.isBuffer(body)) {
+            parsedType = JSON.parse(body.toString('utf8'))?.type;
+          } else if (typeof body === 'object' && body !== null) {
+            parsedType = (body as any).type;
+          }
+        } catch (_) {
+          // ignore parse errors; fallback below
+        }
+
+        const type = parsedType || 'payment_intent.succeeded';
+
+        if (type === 'customer.created' || type === 'customer.updated') {
           return {
-            id: 'evt_test_123',
-            type: 'payment_intent.succeeded',
+            id: 'evt_test_customer',
+            type,
             data: {
               object: {
-                id: 'pi_test_123',
-                amount: 2000,
-                currency: 'usd',
-                status: 'succeeded',
+                id: 'cus_123',
+                email: 'user@example.com',
+                name: 'Jane Doe',
+                address: { line1: '123 Main St', city: 'Metropolis' },
               },
             },
           };
         }
-        throw new Error('Invalid signature');
+
+        // Default: payment_intent.succeeded
+        return {
+          id: 'evt_test_123',
+          type: 'payment_intent.succeeded',
+          data: {
+            object: {
+              id: 'pi_test_123',
+              amount: 2000,
+              currency: 'usd',
+              status: 'succeeded',
+            },
+          },
+        };
       }),
     },
   }));
@@ -151,6 +191,64 @@ describe('Stripe Webhook Handler', () => {
 
       expect(response2.status).toBe(200);
       expect(response2.body.message).toBe('Event already processed');
+    });
+
+    it('should upsert customer billing info on customer.created', async () => {
+      const {
+        customerBillingInfoModel,
+      } = require('../../../models/customer_billing_info');
+      const StripeLib = require('stripe');
+      const stripeInstance = new StripeLib();
+      stripeInstance.webhooks.constructEvent.mockImplementationOnce(() => ({
+        id: 'evt_customer_created',
+        type: 'customer.created',
+        data: {
+          object: {
+            id: 'cus_123',
+            email: 'user@example.com',
+            name: 'Jane Doe',
+            address: { line1: '123 Main St', city: 'Metropolis' },
+          },
+        },
+      }));
+
+      // Trigger customer.created
+      const response = await request(app)
+        .post('/api/v1/webhooks/stripe')
+        .set('stripe-signature', 'valid_signature')
+        .send({ test: 'data', type: 'customer.created' });
+
+      expect(response.status).toBe(200);
+      expect(customerBillingInfoModel.updateFromStripe).toHaveBeenCalled();
+    });
+
+    it('should upsert customer billing info on customer.updated', async () => {
+      const {
+        customerBillingInfoModel,
+      } = require('../../../models/customer_billing_info');
+      const StripeLib = require('stripe');
+      const stripeInstance = new StripeLib();
+      stripeInstance.webhooks.constructEvent.mockImplementationOnce(() => ({
+        id: 'evt_customer_updated',
+        type: 'customer.updated',
+        data: {
+          object: {
+            id: 'cus_123',
+            email: 'new@example.com',
+            name: 'Jane D',
+            address: { line1: '456 Elm', city: 'Gotham' },
+          },
+        },
+      }));
+
+      // Trigger customer.updated
+      const response = await request(app)
+        .post('/api/v1/webhooks/stripe')
+        .set('stripe-signature', 'valid_signature')
+        .send({ test: 'data', type: 'customer.updated' });
+
+      expect(response.status).toBe(200);
+      expect(customerBillingInfoModel.updateFromStripe).toHaveBeenCalled();
     });
 
     it('should handle database storage errors gracefully', async () => {

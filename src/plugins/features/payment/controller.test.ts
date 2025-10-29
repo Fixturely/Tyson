@@ -5,6 +5,20 @@ jest.mock('../../../services/stripe', () => ({
   createOrGetStripeCustomer: jest.fn(),
 }));
 
+// Mock database to avoid knex initialization in tests
+jest.mock('../../../services/database', () => {
+  const mockDb = jest.fn(() => ({
+    insert: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    first: jest.fn().mockResolvedValue(null),
+    onConflict: jest.fn().mockReturnThis(),
+    merge: jest.fn().mockResolvedValue(1),
+    ignore: jest.fn().mockResolvedValue(1),
+  }));
+  (mockDb as any).raw = jest.fn();
+  return { __esModule: true, default: mockDb };
+});
+
 const mockZeusSubscriptionModel = {
   createZeusSubscription: jest.fn(),
 };
@@ -17,6 +31,13 @@ jest.mock('../../../models/payment_intent', () => ({
   paymentIntentModel: {
     createPaymentIntent: jest.fn(),
     updatePaymentIntent: jest.fn(),
+  },
+}));
+
+// Mock customer billing info model used by controller
+jest.mock('../../../models/customer_billing_info', () => ({
+  customerBillingInfoModel: {
+    ensureExistsFromStripe: jest.fn().mockResolvedValue(undefined),
   },
 }));
 
