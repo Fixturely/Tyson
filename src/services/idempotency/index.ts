@@ -16,7 +16,11 @@ class IdempotencyKeyStore {
     eventType: string,
     metadata: { payment_intent_id?: string; success?: boolean; error?: string }
   ): Promise<void> {
-    await processedBillingEventModel.markProcessed(eventId, eventType, metadata);
+    await processedBillingEventModel.markProcessed(
+      eventId,
+      eventType,
+      metadata
+    );
   }
 
   // Clean up old events (cleanup every 24 hours)

@@ -18,21 +18,29 @@ describe('Idempotency Key Store (Database-backed)', () => {
 
   describe('hasProcessed', () => {
     it('should return false when event not processed', async () => {
-      (processedBillingEventModel.hasProcessed as jest.Mock).mockResolvedValue(false);
+      (processedBillingEventModel.hasProcessed as jest.Mock).mockResolvedValue(
+        false
+      );
 
       const result = await idempotencyKeyStore.hasProcessed('evt_test_123');
 
       expect(result).toBe(false);
-      expect(processedBillingEventModel.hasProcessed).toHaveBeenCalledWith('evt_test_123');
+      expect(processedBillingEventModel.hasProcessed).toHaveBeenCalledWith(
+        'evt_test_123'
+      );
     });
 
     it('should return true when event already processed', async () => {
-      (processedBillingEventModel.hasProcessed as jest.Mock).mockResolvedValue(true);
+      (processedBillingEventModel.hasProcessed as jest.Mock).mockResolvedValue(
+        true
+      );
 
       const result = await idempotencyKeyStore.hasProcessed('evt_test_123');
 
       expect(result).toBe(true);
-      expect(processedBillingEventModel.hasProcessed).toHaveBeenCalledWith('evt_test_123');
+      expect(processedBillingEventModel.hasProcessed).toHaveBeenCalledWith(
+        'evt_test_123'
+      );
     });
   });
 
@@ -96,7 +104,9 @@ describe('Idempotency Key Store (Database-backed)', () => {
         failed_count: 2,
       };
 
-      (processedBillingEventModel.getStats as jest.Mock).mockResolvedValue(mockStats);
+      (processedBillingEventModel.getStats as jest.Mock).mockResolvedValue(
+        mockStats
+      );
 
       const stats = await idempotencyKeyStore.getStats();
 

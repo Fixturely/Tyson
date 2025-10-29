@@ -1,5 +1,5 @@
-import db from "../services/database";
-import logger from "../utils/logger";
+import db from '../services/database';
+import logger from '../utils/logger';
 
 export interface ProcessedBillingEventData {
   id?: number;
@@ -14,120 +14,132 @@ export interface ProcessedBillingEventData {
 }
 
 export class ProcessedBillingEventModel {
-    async createProcessedBillingEvent(eventData: ProcessedBillingEventData): Promise<void> {
-        try {
-            await db('processed_billing_events').insert(eventData);
-        } catch (error) {
-            logger.error(`Error creating processed billing event: ${error}`);
-            throw error;
-        }
+  async createProcessedBillingEvent(
+    eventData: ProcessedBillingEventData
+  ): Promise<void> {
+    try {
+      await db('processed_billing_events').insert(eventData);
+    } catch (error) {
+      logger.error(`Error creating processed billing event: ${error}`);
+      throw error;
     }
+  }
 
-    async getProcessedBillingEventById(id: number): Promise<ProcessedBillingEventData | null> {
-        try {
-            const event = await db('processed_billing_events').where('id', id).first();
-            return event as ProcessedBillingEventData | null;
-        } catch (error) {
-            logger.error(`Error getting processed billing event by id: ${error}`);
-            throw error;
-        }
+  async getProcessedBillingEventById(
+    id: number
+  ): Promise<ProcessedBillingEventData | null> {
+    try {
+      const event = await db('processed_billing_events')
+        .where('id', id)
+        .first();
+      return event as ProcessedBillingEventData | null;
+    } catch (error) {
+      logger.error(`Error getting processed billing event by id: ${error}`);
+      throw error;
     }
+  }
 
-    async getProcessedBillingEventsByEventId(eventId: string): Promise<ProcessedBillingEventData | null> {
-        try {
-            const event = await db('processed_billing_events')
-                .where('event_id', eventId)
-                .first();
-            return event as ProcessedBillingEventData | null;
-        } catch (error) {
-            logger.error(`Error getting processed billing events by event id: ${error}`);
-            throw error;
-        }
+  async getProcessedBillingEventsByEventId(
+    eventId: string
+  ): Promise<ProcessedBillingEventData | null> {
+    try {
+      const event = await db('processed_billing_events')
+        .where('event_id', eventId)
+        .first();
+      return event as ProcessedBillingEventData | null;
+    } catch (error) {
+      logger.error(
+        `Error getting processed billing events by event id: ${error}`
+      );
+      throw error;
     }
+  }
 
-    async hasProcessed(eventId: string): Promise<boolean> {
-        try {
-            const result = await db('processed_billing_events')
-                .where('event_id', eventId)
-                .count<{ count: number }>('id as count')
-                .first();
-            // Knex returns an object with count property, check if greater than 0
-            return Number(result?.count || 0) > 0;
-        } catch (error) {
-            logger.error(`Error checking if event has been processed: ${error}`);
-            throw error;
-        }
+  async hasProcessed(eventId: string): Promise<boolean> {
+    try {
+      const result = await db('processed_billing_events')
+        .where('event_id', eventId)
+        .select('id')
+        .first();
+      return !!result;
+    } catch (error) {
+      logger.error(`Error checking if event has been processed: ${error}`);
+      throw error;
     }
+  }
 
+  async markProcessed(
+    eventId: string,
+    eventType: string,
+    metadata: { payment_intent_id?: string; success?: boolean; error?: string }
+  ): Promise<void> {
+    try {
+      const data = {
+        event_id: eventId,
+        event_type: eventType,
+        payment_intent_id: metadata.payment_intent_id || null,
+        processed_at: new Date(),
+        success: metadata.success ?? true,
+        error_message: metadata.error || null,
+      };
 
-    async markProcessed(
-        eventId: string, 
-        eventType: string, 
-        metadata: { payment_intent_id?: string; success?: boolean; error?: string }
-    ): Promise<void> {
-        try {
-            const data = {
-                event_id: eventId,
-                event_type: eventType,
-                payment_intent_id: metadata.payment_intent_id || null,
-                processed_at: new Date(),
-                success: metadata.success ?? true,
-                error_message: metadata.error || null,
-            };
+      await db('processed_billing_events')
+        .insert(data)
+        .onConflict('event_id')
+        .merge({
+          // Update these fields if record already exists
+          payment_intent_id: data.payment_intent_id,
+          processed_at: data.processed_at,
+          success: data.success,
+          error_message: data.error_message,
+          updated_at: new Date(),
+        });
 
-            await db('processed_billing_events')
-                .insert(data)
-                .onConflict('event_id')
-                .merge({
-                    // Update these fields if record already exists
-                    payment_intent_id: data.payment_intent_id,
-                    processed_at: data.processed_at,
-                    success: data.success,
-                    error_message: data.error_message,
-                    updated_at: new Date(),
-                });
-
-            logger.info(`Marked event as processed: ${eventId}`);
-        } catch (error) {
-            logger.error(`Error marking event as processed: ${error}`);
-            throw error;
-        }
+      logger.info(`Marked event as processed: ${eventId}`);
+    } catch (error) {
+      logger.error(`Error marking event as processed: ${error}`);
+      throw error;
     }
+  }
 
-    async cleanup(maxAgeHours: number = 24): Promise<number> {
-        try {
-            const result = await db('processed_billing_events')
-                .where('processed_at', '<', db.raw('NOW() - INTERVAL ? HOUR', [maxAgeHours]))
-                .delete();
-            
-            logger.info(`Cleaned up ${result} old processed billing events`);
-            return result;
-        } catch (error) {
-            logger.error(`Error cleaning up processed billing events: ${error}`);
-            throw error;
-        }
-    }
+  async cleanup(maxAgeHours: number = 24): Promise<number> {
+    try {
+      const result = await db('processed_billing_events')
+        .where(
+          'processed_at',
+          '<',
+          db.raw('NOW() - INTERVAL ? HOUR', [maxAgeHours])
+        )
+        .delete();
 
-    async getStats() {
-        try {
-            const total = await db('processed_billing_events')
-                .count('* as count')
-                .first();
-            
-            const failed = await db('processed_billing_events')
-                .where('success', false)
-                .count('* as count')
-                .first();
-            
-            return {
-                total_processed: parseInt(total?.count?.toString() || '0', 10),
-                failed_count: parseInt(failed?.count?.toString() || '0', 10),
-            };
-        } catch (error) {
-            logger.error(`Error getting processed billing events stats: ${error}`);
-            throw error;
-        }
+      logger.info(`Cleaned up ${result} old processed billing events`);
+      return result;
+    } catch (error) {
+      logger.error(`Error cleaning up processed billing events: ${error}`);
+      throw error;
     }
+  }
+
+  async getStats() {
+    try {
+      const total = await db('processed_billing_events')
+        .count('* as count')
+        .first();
+
+      const failed = await db('processed_billing_events')
+        .where('success', false)
+        .count('* as count')
+        .first();
+
+      return {
+        total_processed: parseInt(total?.count?.toString() || '0', 10),
+        failed_count: parseInt(failed?.count?.toString() || '0', 10),
+      };
+    } catch (error) {
+      logger.error(`Error getting processed billing events stats: ${error}`);
+      throw error;
+    }
+  }
 }
 
 export const processedBillingEventModel = new ProcessedBillingEventModel();

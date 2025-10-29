@@ -6,6 +6,7 @@ jest.mock('../../services/database', () => {
   const mockQueryBuilder = {
     insert: jest.fn().mockReturnThis(),
     where: jest.fn().mockReturnThis(),
+    select: jest.fn().mockReturnThis(),
     update: jest.fn().mockResolvedValue(1),
     first: jest.fn().mockResolvedValue(null),
     count: jest.fn().mockReturnThis(),
@@ -49,28 +50,38 @@ describe('ProcessedBillingEventModel', () => {
 
   describe('hasProcessed', () => {
     it('should return false when event not processed', async () => {
-      mockQueryBuilder.first.mockResolvedValueOnce({ count: 0 });
+      mockQueryBuilder.first.mockResolvedValueOnce(null);
 
       const result = await model.hasProcessed('evt_test_123');
 
       expect(result).toBe(false);
-      expect(mockQueryBuilder.where).toHaveBeenCalledWith('event_id', 'evt_test_123');
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
+        'event_id',
+        'evt_test_123'
+      );
+      expect(mockQueryBuilder.select).toHaveBeenCalledWith('id');
       expect(mockQueryBuilder.first).toHaveBeenCalled();
     });
 
     it('should return true when event already processed', async () => {
-      mockQueryBuilder.first.mockResolvedValueOnce({ count: 1 });
+      mockQueryBuilder.first.mockResolvedValueOnce({ id: 123 });
 
       const result = await model.hasProcessed('evt_test_456');
 
       expect(result).toBe(true);
-      expect(mockQueryBuilder.where).toHaveBeenCalledWith('event_id', 'evt_test_456');
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
+        'event_id',
+        'evt_test_456'
+      );
+      expect(mockQueryBuilder.select).toHaveBeenCalledWith('id');
     });
 
     it('should handle database errors', async () => {
       mockQueryBuilder.first.mockRejectedValueOnce(new Error('Database error'));
 
-      await expect(model.hasProcessed('evt_test_123')).rejects.toThrow('Database error');
+      await expect(model.hasProcessed('evt_test_123')).rejects.toThrow(
+        'Database error'
+      );
     });
   });
 
@@ -188,4 +199,3 @@ describe('ProcessedBillingEventModel', () => {
     });
   });
 });
-

@@ -86,7 +86,7 @@ describe('Stripe Webhook Handler', () => {
   beforeEach(() => {
     // Mock idempotency store to always return not processed
     (idempotencyKeyStore.hasProcessed as jest.Mock).mockResolvedValue(false);
-    
+
     // Clear mocks
     jest.clearAllMocks();
   });
@@ -127,8 +127,10 @@ describe('Stripe Webhook Handler', () => {
 
     it('should handle idempotency correctly', async () => {
       // First request - not processed yet
-      (idempotencyKeyStore.hasProcessed as jest.Mock).mockResolvedValueOnce(false);
-      
+      (idempotencyKeyStore.hasProcessed as jest.Mock).mockResolvedValueOnce(
+        false
+      );
+
       const response1 = await request(app)
         .post('/api/v1/webhooks/stripe')
         .set('stripe-signature', 'valid_signature')
@@ -138,8 +140,10 @@ describe('Stripe Webhook Handler', () => {
       expect(response1.body.message).toBe('Webhook received');
 
       // Second request - already processed
-      (idempotencyKeyStore.hasProcessed as jest.Mock).mockResolvedValueOnce(true);
-      
+      (idempotencyKeyStore.hasProcessed as jest.Mock).mockResolvedValueOnce(
+        true
+      );
+
       const response2 = await request(app)
         .post('/api/v1/webhooks/stripe')
         .set('stripe-signature', 'valid_signature')
