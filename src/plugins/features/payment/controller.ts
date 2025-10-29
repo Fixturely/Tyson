@@ -8,6 +8,7 @@ import logger from '../../../utils/logger';
 import { createPaymentIntentData, updatePaymentIntentData } from './helper';
 import { zeusSubscriptionModel } from '../../../models/zeus_subscriptions';
 import { createOrGetStripeCustomer } from '../../../services/stripe';
+import { customerBillingInfoModel } from '../../../models/customer_billing_info';
 
 export async function createPaymentIntentController(
   req: Request,
@@ -73,6 +74,8 @@ export async function createZeusSubscriptionPaymentController(
     const stripeCustomer = await createOrGetStripeCustomer(
       customer_info as { email: string; name?: string }
     );
+    // Ensure a billing record exists without overwriting existing data
+    await customerBillingInfoModel.ensureExistsFromStripe(stripeCustomer);
 
     // Create payment intent with customer info
     const result = await createPaymentIntent(amount, currency, {
