@@ -128,7 +128,13 @@ jest.mock('stripe', () => {
   const retrievePaymentMethod = jest.fn().mockResolvedValue({
     id: 'pm_mock',
     type: 'card',
-    card: { brand: 'visa', last4: '4242', exp_month: 12, exp_year: 2030, funding: 'credit' },
+    card: {
+      brand: 'visa',
+      last4: '4242',
+      exp_month: 12,
+      exp_year: 2030,
+      funding: 'credit',
+    },
   });
 
   const sharedInstance = {
@@ -318,7 +324,9 @@ describe('Stripe Webhook Handler', () => {
 
   describe('Payment method persistence rules', () => {
     it('persists payment method on payment_intent.succeeded when save flag is true', async () => {
-      const { customerPaymentMethodsModel } = require('../../../models/customer_payment_methods');
+      const {
+        customerPaymentMethodsModel,
+      } = require('../../../models/customer_payment_methods');
       const StripeLib = require('stripe');
       const stripeInstance = new StripeLib();
       stripeInstance.webhooks.constructEvent.mockImplementationOnce(() => ({
@@ -343,12 +351,18 @@ describe('Stripe Webhook Handler', () => {
         .send({});
 
       expect(resp.status).toBe(200);
-      expect(customerPaymentMethodsModel.upsertFromStripePaymentMethod).toHaveBeenCalled();
+      expect(
+        customerPaymentMethodsModel.upsertFromStripePaymentMethod
+      ).toHaveBeenCalled();
     });
 
     it('does not persist payment method when save flag is false', async () => {
-      const { customerPaymentMethodsModel } = require('../../../models/customer_payment_methods');
-      (customerPaymentMethodsModel.upsertFromStripePaymentMethod as jest.Mock).mockClear();
+      const {
+        customerPaymentMethodsModel,
+      } = require('../../../models/customer_payment_methods');
+      (
+        customerPaymentMethodsModel.upsertFromStripePaymentMethod as jest.Mock
+      ).mockClear();
       const StripeLib = require('stripe');
       const stripeInstance = new StripeLib();
       stripeInstance.webhooks.constructEvent.mockImplementationOnce(() => ({
@@ -373,18 +387,37 @@ describe('Stripe Webhook Handler', () => {
         .send({});
 
       expect(resp.status).toBe(200);
-      expect(customerPaymentMethodsModel.upsertFromStripePaymentMethod).not.toHaveBeenCalled();
+      expect(
+        customerPaymentMethodsModel.upsertFromStripePaymentMethod
+      ).not.toHaveBeenCalled();
     });
 
     it('does not upsert on payment_method.attached anymore', async () => {
-      const { customerPaymentMethodsModel } = require('../../../models/customer_payment_methods');
-      (customerPaymentMethodsModel.upsertFromStripePaymentMethod as jest.Mock).mockClear();
+      const {
+        customerPaymentMethodsModel,
+      } = require('../../../models/customer_payment_methods');
+      (
+        customerPaymentMethodsModel.upsertFromStripePaymentMethod as jest.Mock
+      ).mockClear();
       const StripeLib = require('stripe');
       const stripeInstance = new StripeLib();
       stripeInstance.webhooks.constructEvent.mockImplementationOnce(() => ({
         id: 'evt_pm_attached',
         type: 'payment_method.attached',
-        data: { object: { id: 'pm_123', customer: 'cus_123', type: 'card', card: { brand: 'visa', last4: '4242', exp_month: 12, exp_year: 2030, funding: 'credit' } } },
+        data: {
+          object: {
+            id: 'pm_123',
+            customer: 'cus_123',
+            type: 'card',
+            card: {
+              brand: 'visa',
+              last4: '4242',
+              exp_month: 12,
+              exp_year: 2030,
+              funding: 'credit',
+            },
+          },
+        },
       }));
 
       const resp = await request(app)
@@ -393,7 +426,9 @@ describe('Stripe Webhook Handler', () => {
         .send({});
 
       expect(resp.status).toBe(200);
-      expect(customerPaymentMethodsModel.upsertFromStripePaymentMethod).not.toHaveBeenCalled();
+      expect(
+        customerPaymentMethodsModel.upsertFromStripePaymentMethod
+      ).not.toHaveBeenCalled();
     });
   });
 
@@ -402,18 +437,35 @@ describe('Stripe Webhook Handler', () => {
       const StripeLib = require('stripe');
       const stripeInstance = new StripeLib();
       // Force processing error by throwing during succeeded handling
-      const { zeusSubscriptionModel } = require('../../../models/zeus_subscriptions');
-      (zeusSubscriptionModel.updateZeusSubscriptionStatus as jest.Mock).mockRejectedValueOnce(new Error('Zeus update failed'));
+      const {
+        zeusSubscriptionModel,
+      } = require('../../../models/zeus_subscriptions');
+      (
+        zeusSubscriptionModel.updateZeusSubscriptionStatus as jest.Mock
+      ).mockRejectedValueOnce(new Error('Zeus update failed'));
 
-      const { webhookEventDbService } = require('../../../models/webhook_events');
-      (webhookEventDbService.markWebhookEventAsProcessed as jest.Mock).mockRejectedValueOnce(new Error('mark failed'));
+      const {
+        webhookEventDbService,
+      } = require('../../../models/webhook_events');
+      (
+        webhookEventDbService.markWebhookEventAsProcessed as jest.Mock
+      ).mockRejectedValueOnce(new Error('mark failed'));
       const { idempotencyKeyStore } = require('../../../services/idempotency');
-      (idempotencyKeyStore.markProcessed as jest.Mock).mockRejectedValueOnce(new Error('idem failed'));
+      (idempotencyKeyStore.markProcessed as jest.Mock).mockRejectedValueOnce(
+        new Error('idem failed')
+      );
 
       stripeInstance.webhooks.constructEvent.mockImplementationOnce(() => ({
         id: 'evt_fail',
         type: 'payment_intent.succeeded',
-        data: { object: { id: 'pi_x', amount: 1000, currency: 'usd', status: 'succeeded' } },
+        data: {
+          object: {
+            id: 'pi_x',
+            amount: 1000,
+            currency: 'usd',
+            status: 'succeeded',
+          },
+        },
       }));
 
       const resp = await request(app)

@@ -1,3 +1,4 @@
+import { custom } from 'joi';
 import db from '../services/database';
 import logger from '../utils/logger';
 import Stripe from 'stripe';
@@ -24,8 +25,24 @@ function mapStripePaymentMethod(
   pm: Stripe.PaymentMethod,
   customerId?: string
 ): CustomerPaymentMethodData {
+  let determinedCustomerId: string | undefined = customerId;
+  if (!determinedCustomerId) {
+    if (typeof pm.customer == 'string') {
+      determinedCustomerId = pm.customer;
+    } else if (pm.customer?.id) {
+      determinedCustomerId = pm.customer.id;
+    }
+  }
+
+  if (!determinedCustomerId) {
+    logger.error('Could not determine customer ID for payment method', {
+      payment_method_id: pm.id,
+    });
+    throw new Error(`Customer ID is required to save payment method ${pm.id}`);
+  }
+
   const base: CustomerPaymentMethodData = {
-    customer_id: customerId || (pm.customer as string) || '',
+    customer_id: determinedCustomerId,
     payment_method_id: pm.id,
     type: pm.type,
     is_default: false,
@@ -39,12 +56,16 @@ function mapStripePaymentMethod(
     base.card_funding = pm.card.funding || null;
   }
 
-  // US bank account example (add more types as needed)
-  // @ts-ignore - types vary per method
-  const bank = (pm as any).us_bank_account || (pm as any).sepa_debit;
-  if (bank) {
-    base.bank_name = bank.bank_name || null;
-    base.bank_last4 = bank.last4 || null;
+  // US bank account
+  if (pm.type === 'us_bank_account' && pm.us_bank_account) {
+    base.bank_name = pm.us_bank_account.bank_name || null;
+    base.bank_last4 = pm.us_bank_account.last4 || null;
+  }
+
+  // SEPA debit
+  if (pm.type === 'sepa_debit' && pm.sepa_debit) {
+    base.bank_last4 = pm.sepa_debit.last4 || null;
+    base.mandate_id = (pm.sepa_debit as any).mandate || null;
   }
 
   return base;
@@ -75,28 +96,18 @@ export class CustomerPaymentMethodsModel {
     }
   }
 
-  async listByCustomer(customerId: string): Promise<CustomerPaymentMethodData[]> {
+  async listByCustomer(
+    customerId: string
+  ): Promise<CustomerPaymentMethodData[]> {
     try {
       return await db('customer_payment_methods')
         .where('customer_id', customerId)
-        .orderBy([{ column: 'is_default', order: 'desc' }, { column: 'created_at', order: 'desc' }]);
+        .orderBy([
+          { column: 'is_default', order: 'desc' },
+          { column: 'created_at', order: 'desc' },
+        ]);
     } catch (error) {
       logger.error(`Error listing payment methods: ${error}`);
-      throw error;
-    }
-  }
-
-  async setDefault(customerId: string, paymentMethodId: string): Promise<void> {
-    try {
-      await db('customer_payment_methods')
-        .where('customer_id', customerId)
-        .update({ is_default: false });
-
-      await db('customer_payment_methods')
-        .where({ customer_id: customerId, payment_method_id: paymentMethodId })
-        .update({ is_default: true, updated_at: new Date() });
-    } catch (error) {
-      logger.error(`Error setting default payment method: ${error}`);
       throw error;
     }
   }
@@ -114,6 +125,3 @@ export class CustomerPaymentMethodsModel {
 }
 
 export const customerPaymentMethodsModel = new CustomerPaymentMethodsModel();
-
-
-

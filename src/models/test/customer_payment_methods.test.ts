@@ -85,7 +85,10 @@ describe('CustomerPaymentMethodsModel', () => {
     });
 
     it('should prefer explicit customerId when provided', async () => {
-      await model.upsertFromStripePaymentMethod({ ...stripeCardPm, customer: null } as any, 'cus_override');
+      await model.upsertFromStripePaymentMethod(
+        { ...stripeCardPm, customer: null } as any,
+        'cus_override'
+      );
 
       expect(qb.insert).toHaveBeenCalledWith(
         expect.objectContaining({ customer_id: 'cus_override' })
@@ -120,21 +123,6 @@ describe('CustomerPaymentMethodsModel', () => {
     });
   });
 
-  describe('setDefault', () => {
-    it('should clear defaults then set specified method as default', async () => {
-      await model.setDefault('cus_123', 'pm_abc');
-
-      expect(mockDb).toHaveBeenCalledWith('customer_payment_methods');
-      // First update all to false
-      expect(qb.where).toHaveBeenNthCalledWith(1, 'customer_id', 'cus_123');
-      expect(qb.update).toHaveBeenNthCalledWith(1, { is_default: false });
-
-      // Then set specific to true
-      expect(qb.where).toHaveBeenNthCalledWith(2, { customer_id: 'cus_123', payment_method_id: 'pm_abc' });
-      expect(qb.update).toHaveBeenNthCalledWith(2, expect.objectContaining({ is_default: true, updated_at: expect.any(Date) }));
-    });
-  });
-
   describe('remove', () => {
     it('should delete by payment_method_id', async () => {
       await model.remove('pm_123');
@@ -145,5 +133,3 @@ describe('CustomerPaymentMethodsModel', () => {
     });
   });
 });
-
-
