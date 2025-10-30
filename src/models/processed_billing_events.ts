@@ -95,7 +95,7 @@ export class ProcessedBillingEventModel {
           updated_at: new Date(),
         });
 
-      logger.info(`Marked event as processed: ${eventId}`);
+      logger.info(`Marked processed billing event as processed: ${eventId}`);
     } catch (error) {
       logger.error(`Error marking event as processed: ${error}`);
       throw error;
