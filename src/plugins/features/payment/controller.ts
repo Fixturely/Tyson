@@ -55,6 +55,12 @@ export async function confirmPaymentIntentController(
   }
 }
 
+// Zeus hits this endpoint to create a subscription. All this controller does is,
+// 1. Create a Stripe customer if needed based on the customer info
+// 2. Add customer to the database if not added already
+// 3. Create payment intent with stripe for that customer.id
+// 4. Store payment intent in database
+// 5. Create Zeus subscription
 export async function createZeusSubscriptionPaymentController(
   req: Request,
   res: Response
@@ -68,6 +74,7 @@ export async function createZeusSubscriptionPaymentController(
       description,
       metadata,
       customer_info,
+      save_payment_method = false,
     } = req.body;
 
     // Create Stripe customer if needed
@@ -85,11 +92,14 @@ export async function createZeusSubscriptionPaymentController(
       metadata: {
         subscription_id,
         user_id,
+        save_payment_method: save_payment_method ? 'true' : 'false',
         ...metadata,
       },
     });
 
     const paymentIntentData = createPaymentIntentData(result);
+
+    // Store payment intent in database
     await paymentIntentModel.createPaymentIntent(paymentIntentData);
 
     // Create Zeus subscription

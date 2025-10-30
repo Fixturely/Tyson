@@ -6,6 +6,7 @@ import { idempotencyKeyStore } from '../../../services/idempotency/index';
 import { webhookEventDbService } from '../../../models/webhook_events';
 import { zeusSubscriptionModel } from '../../../models/zeus_subscriptions';
 import { customerBillingInfoModel } from '../../../models/customer_billing_info';
+import { customerPaymentMethodsModel } from '../../../models/customer_payment_methods';
 import {
   ZeusNotificationData,
   zeusNotificationService,
@@ -201,6 +202,34 @@ router.post('/', async (req: express.Request, res: express.Response) => {
           currency: paymentIntentSucceeded.currency,
         });
 
+        // If requested at creation time, persist the successful payment method
+        try {
+          const shouldSave =
+            String(
+              (paymentIntentSucceeded.metadata as any)?.save_payment_method
+            ).toLowerCase() === 'true';
+          const pmId =
+            typeof paymentIntentSucceeded.payment_method === 'string'
+              ? paymentIntentSucceeded.payment_method
+              : paymentIntentSucceeded.payment_method?.id;
+          const customerId =
+            typeof paymentIntentSucceeded.customer === 'string'
+              ? paymentIntentSucceeded.customer
+              : (paymentIntentSucceeded.customer as any)?.id;
+          if (shouldSave && pmId && customerId) {
+            const pm = await stripe.paymentMethods.retrieve(pmId);
+            await customerPaymentMethodsModel.upsertFromStripePaymentMethod(
+              pm,
+              customerId
+            );
+          }
+        } catch (pmSaveError) {
+          logger.error('Failed to persist payment method after success', {
+            error: pmSaveError,
+            eventId: event.id,
+          });
+        }
+
         // Handle Zeus subscription if applicable
         await handleZeusSubscription(
           paymentIntentSucceeded,
@@ -326,6 +355,64 @@ router.post('/', async (req: express.Request, res: express.Response) => {
         });
         // TODO: Update subscription status, extend service
         break;
+
+      // Payment Method / SetupIntent Events
+      case 'setup_intent.succeeded': {
+        const si = event.data.object as Stripe.SetupIntent;
+        logger.info('SetupIntent succeeded', {
+          id: si.id,
+          customer: si.customer,
+          payment_method: si.payment_method,
+        });
+        if (si.payment_method) {
+          const pmId =
+            typeof si.payment_method === 'string'
+              ? si.payment_method
+              : si.payment_method.id;
+          const pm = await stripe.paymentMethods.retrieve(pmId);
+          const customerId =
+            typeof si.customer === 'string'
+              ? si.customer
+              : (si.customer as Stripe.Customer)?.id;
+          if (customerId) {
+            await customerPaymentMethodsModel.upsertFromStripePaymentMethod(
+              pm,
+              customerId
+            );
+          } else {
+            logger.warn(
+              'SetupIntent succeeded but no customer ID found, cannot save payment method',
+              { setup_intent_id: si.id }
+            );
+            return res.status(500).json({ error: 'Internal server error' });
+          }
+        }
+        break;
+      }
+
+      case 'payment_method.attached': {
+        const pm = event.data.object as Stripe.PaymentMethod;
+        logger.info('Payment method attached', {
+          id: pm.id,
+          customer: pm.customer,
+          type: pm.type,
+        });
+        // Do not persist on generic attach; we only save when a PI succeeds
+        // with metadata.save_payment_method=true
+        break;
+      }
+
+      case 'payment_method.detached': {
+        const pm = event.data.object as Stripe.PaymentMethod;
+        logger.info('Payment method detached', {
+          id: pm.id,
+          customer: pm.customer,
+          type: pm.type,
+        });
+        // Remove local record
+        await customerPaymentMethodsModel.remove(pm.id);
+        break;
+      }
 
       case 'invoice.payment_failed':
         const invoicePaymentFailed = event.data.object as Stripe.Invoice;

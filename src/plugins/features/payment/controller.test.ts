@@ -484,6 +484,7 @@ describe('Payment Controller', () => {
           email: 'user@example.com',
           name: 'John Doe',
         },
+        save_payment_method: true,
       };
 
       const stripeCustomer = {
@@ -535,6 +536,7 @@ describe('Payment Controller', () => {
         metadata: {
           subscription_id: 123,
           user_id: 456,
+          save_payment_method: 'true',
           sport_id: 1,
           team_id: 5,
           subscription_type: 'monthly',
@@ -617,6 +619,7 @@ describe('Payment Controller', () => {
         customer: 'cus_test_456',
         description: 'Zeus Subscription Payment - 456',
         metadata: {
+          save_payment_method: 'false',
           subscription_id: 456,
           user_id: 789,
         },

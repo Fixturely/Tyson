@@ -14,6 +14,14 @@ jest.mock('../../../services/idempotency', () => ({
   },
 }));
 
+// Mock customer payment methods model
+jest.mock('../../../models/customer_payment_methods', () => ({
+  customerPaymentMethodsModel: {
+    upsertFromStripePaymentMethod: jest.fn().mockResolvedValue(undefined),
+    remove: jest.fn().mockResolvedValue(undefined),
+  },
+}));
+
 // Mock database service
 jest.mock('../../../services/database', () => ({
   default: {
@@ -66,60 +74,75 @@ import app from '../../../index';
 
 // Mock Stripe webhook verification
 jest.mock('stripe', () => {
-  return jest.fn().mockImplementation(() => ({
-    webhooks: {
-      constructEvent: jest.fn((body, sig, secret) => {
-        if (sig !== 'valid_signature') {
-          throw new Error('Invalid signature');
-        }
+  const constructEvent = jest.fn((body, sig, secret) => {
+    if (sig !== 'valid_signature') {
+      throw new Error('Invalid signature');
+    }
 
-        // Body may be Buffer or object in tests; try to read type
-        let parsedType: string | undefined;
-        try {
-          if (typeof body === 'string') {
-            parsedType = JSON.parse(body)?.type;
-          } else if (Buffer.isBuffer(body)) {
-            parsedType = JSON.parse(body.toString('utf8'))?.type;
-          } else if (typeof body === 'object' && body !== null) {
-            parsedType = (body as any).type;
-          }
-        } catch (_) {
-          // ignore parse errors; fallback below
-        }
+    // Body may be Buffer or object in tests; try to read type
+    let parsedType;
+    try {
+      if (typeof body === 'string') {
+        parsedType = JSON.parse(body)?.type;
+      } else if (Buffer.isBuffer(body)) {
+        parsedType = JSON.parse(body.toString('utf8'))?.type;
+      } else if (typeof body === 'object' && body !== null) {
+        parsedType = body.type;
+      }
+    } catch (_) {
+      // ignore parse errors; fallback below
+    }
 
-        const type = parsedType || 'payment_intent.succeeded';
+    const type = parsedType || 'payment_intent.succeeded';
 
-        if (type === 'customer.created' || type === 'customer.updated') {
-          return {
-            id: 'evt_test_customer',
-            type,
-            data: {
-              object: {
-                id: 'cus_123',
-                email: 'user@example.com',
-                name: 'Jane Doe',
-                address: { line1: '123 Main St', city: 'Metropolis' },
-              },
-            },
-          };
-        }
-
-        // Default: payment_intent.succeeded
-        return {
-          id: 'evt_test_123',
-          type: 'payment_intent.succeeded',
-          data: {
-            object: {
-              id: 'pi_test_123',
-              amount: 2000,
-              currency: 'usd',
-              status: 'succeeded',
-            },
+    if (type === 'customer.created' || type === 'customer.updated') {
+      return {
+        id: 'evt_test_customer',
+        type,
+        data: {
+          object: {
+            id: 'cus_123',
+            email: 'user@example.com',
+            name: 'Jane Doe',
+            address: { line1: '123 Main St', city: 'Metropolis' },
           },
-        };
-      }),
+        },
+      };
+    }
+
+    // Default: payment_intent.succeeded
+    return {
+      id: 'evt_test_123',
+      type: 'payment_intent.succeeded',
+      data: {
+        object: {
+          id: 'pi_test_123',
+          amount: 2000,
+          currency: 'usd',
+          status: 'succeeded',
+        },
+      },
+    };
+  });
+
+  const retrievePaymentMethod = jest.fn().mockResolvedValue({
+    id: 'pm_mock',
+    type: 'card',
+    card: {
+      brand: 'visa',
+      last4: '4242',
+      exp_month: 12,
+      exp_year: 2030,
+      funding: 'credit',
     },
-  }));
+  });
+
+  const sharedInstance = {
+    webhooks: { constructEvent },
+    paymentMethods: { retrieve: retrievePaymentMethod },
+  };
+
+  return jest.fn().mockImplementation(() => sharedInstance);
 });
 
 describe('Stripe Webhook Handler', () => {
@@ -296,6 +319,162 @@ describe('Stripe Webhook Handler', () => {
           type: 'payment_intent.succeeded',
         })
       );
+    });
+  });
+
+  describe('Payment method persistence rules', () => {
+    it('persists payment method on payment_intent.succeeded when save flag is true', async () => {
+      const {
+        customerPaymentMethodsModel,
+      } = require('../../../models/customer_payment_methods');
+      const StripeLib = require('stripe');
+      const stripeInstance = new StripeLib();
+      stripeInstance.webhooks.constructEvent.mockImplementationOnce(() => ({
+        id: 'evt_pi_succeeded_true',
+        type: 'payment_intent.succeeded',
+        data: {
+          object: {
+            id: 'pi_test_pi',
+            amount: 1000,
+            currency: 'usd',
+            status: 'succeeded',
+            customer: 'cus_123',
+            payment_method: 'pm_123',
+            metadata: { save_payment_method: 'true' },
+          },
+        },
+      }));
+
+      const resp = await request(app)
+        .post('/api/v1/webhooks/stripe')
+        .set('stripe-signature', 'valid_signature')
+        .send({});
+
+      expect(resp.status).toBe(200);
+      expect(
+        customerPaymentMethodsModel.upsertFromStripePaymentMethod
+      ).toHaveBeenCalled();
+    });
+
+    it('does not persist payment method when save flag is false', async () => {
+      const {
+        customerPaymentMethodsModel,
+      } = require('../../../models/customer_payment_methods');
+      (
+        customerPaymentMethodsModel.upsertFromStripePaymentMethod as jest.Mock
+      ).mockClear();
+      const StripeLib = require('stripe');
+      const stripeInstance = new StripeLib();
+      stripeInstance.webhooks.constructEvent.mockImplementationOnce(() => ({
+        id: 'evt_pi_succeeded_false',
+        type: 'payment_intent.succeeded',
+        data: {
+          object: {
+            id: 'pi_test_pi',
+            amount: 1000,
+            currency: 'usd',
+            status: 'succeeded',
+            customer: 'cus_123',
+            payment_method: 'pm_123',
+            metadata: { save_payment_method: 'false' },
+          },
+        },
+      }));
+
+      const resp = await request(app)
+        .post('/api/v1/webhooks/stripe')
+        .set('stripe-signature', 'valid_signature')
+        .send({});
+
+      expect(resp.status).toBe(200);
+      expect(
+        customerPaymentMethodsModel.upsertFromStripePaymentMethod
+      ).not.toHaveBeenCalled();
+    });
+
+    it('does not upsert on payment_method.attached anymore', async () => {
+      const {
+        customerPaymentMethodsModel,
+      } = require('../../../models/customer_payment_methods');
+      (
+        customerPaymentMethodsModel.upsertFromStripePaymentMethod as jest.Mock
+      ).mockClear();
+      const StripeLib = require('stripe');
+      const stripeInstance = new StripeLib();
+      stripeInstance.webhooks.constructEvent.mockImplementationOnce(() => ({
+        id: 'evt_pm_attached',
+        type: 'payment_method.attached',
+        data: {
+          object: {
+            id: 'pm_123',
+            customer: 'cus_123',
+            type: 'card',
+            card: {
+              brand: 'visa',
+              last4: '4242',
+              exp_month: 12,
+              exp_year: 2030,
+              funding: 'credit',
+            },
+          },
+        },
+      }));
+
+      const resp = await request(app)
+        .post('/api/v1/webhooks/stripe')
+        .set('stripe-signature', 'valid_signature')
+        .send({});
+
+      expect(resp.status).toBe(200);
+      expect(
+        customerPaymentMethodsModel.upsertFromStripePaymentMethod
+      ).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Error handling in catch with marking failures', () => {
+    it('still responds 500 if processing fails and marking also errors', async () => {
+      const StripeLib = require('stripe');
+      const stripeInstance = new StripeLib();
+      // Force processing error by throwing during succeeded handling
+      const {
+        zeusSubscriptionModel,
+      } = require('../../../models/zeus_subscriptions');
+      (
+        zeusSubscriptionModel.updateZeusSubscriptionStatus as jest.Mock
+      ).mockRejectedValueOnce(new Error('Zeus update failed'));
+
+      const {
+        webhookEventDbService,
+      } = require('../../../models/webhook_events');
+      (
+        webhookEventDbService.markWebhookEventAsProcessed as jest.Mock
+      ).mockRejectedValueOnce(new Error('mark failed'));
+      const { idempotencyKeyStore } = require('../../../services/idempotency');
+      (idempotencyKeyStore.markProcessed as jest.Mock).mockRejectedValueOnce(
+        new Error('idem failed')
+      );
+
+      stripeInstance.webhooks.constructEvent.mockImplementationOnce(() => ({
+        id: 'evt_fail',
+        type: 'payment_intent.succeeded',
+        data: {
+          object: {
+            id: 'pi_x',
+            amount: 1000,
+            currency: 'usd',
+            status: 'succeeded',
+          },
+        },
+      }));
+
+      const resp = await request(app)
+        .post('/api/v1/webhooks/stripe')
+        .set('stripe-signature', 'valid_signature')
+        .send({});
+
+      expect(resp.status).toBe(500);
+      expect(resp.body).toEqual({ error: 'Internal server error' });
     });
   });
 
