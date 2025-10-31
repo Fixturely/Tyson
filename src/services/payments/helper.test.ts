@@ -260,10 +260,13 @@ describe('Payments Helper Functions', () => {
         team_id: 0,
       };
 
-      // Zero values are falsy, so they won't be included
+      // Zero values are now included (using != null check)
       const result = buildMetadata(subscription);
 
-      expect(result).toBeUndefined();
+      expect(result).toEqual({
+        sport_id: 0,
+        team_id: 0,
+      });
     });
   });
 
