@@ -64,7 +64,8 @@ export class StripeService {
       paymentIntentParams.metadata = options.metadata;
     }
 
-    const pi = await this.deps.stripe.paymentIntents.create(paymentIntentParams);
+    const pi =
+      await this.deps.stripe.paymentIntents.create(paymentIntentParams);
     return mapPaymentIntentToResult(pi);
   }
 
@@ -111,4 +112,3 @@ export class StripeService {
     }
   }
 }
-

@@ -153,4 +153,3 @@ describe('Notification Helper Functions', () => {
     });
   });
 });
-

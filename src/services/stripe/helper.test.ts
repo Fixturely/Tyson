@@ -158,4 +158,3 @@ describe('Stripe Helper Functions', () => {
     });
   });
 });
-

@@ -76,8 +76,8 @@ router.post('/', async (req: express.Request, res: express.Response) => {
   }
 
   try {
-    var pi: Stripe.PaymentIntent;
-    var charge: Stripe.Charge;
+    let pi: Stripe.PaymentIntent;
+    let charge: Stripe.Charge;
     switch (event.type) {
       // Payment Intent Events
       case 'payment_intent.created': {
@@ -87,11 +87,8 @@ router.post('/', async (req: express.Request, res: express.Response) => {
       }
 
       case 'payment_intent.succeeded': {
-        pi = event.data
-          .object as Stripe.PaymentIntent;
-        await paymentsService.handlePaymentIntentSucceeded(
-          pi
-        );
+        pi = event.data.object as Stripe.PaymentIntent;
+        await paymentsService.handlePaymentIntentSucceeded(pi);
         break;
       }
 
@@ -128,7 +125,6 @@ router.post('/', async (req: express.Request, res: express.Response) => {
         });
         // TODO: Handle charge failure, notify user
         break;
-
 
       // Customer Events
       case 'customer.created':

@@ -24,7 +24,9 @@ export interface ZeusSubscriptionMetadata {
 /**
  * Extract customer ID from Stripe PaymentIntent
  */
-export function extractCustomerId(pi: Stripe.PaymentIntent): string | undefined {
+export function extractCustomerId(
+  pi: Stripe.PaymentIntent
+): string | undefined {
   return pi.customer
     ? typeof pi.customer === 'string'
       ? pi.customer
@@ -35,7 +37,9 @@ export function extractCustomerId(pi: Stripe.PaymentIntent): string | undefined 
 /**
  * Extract payment method ID from Stripe PaymentIntent
  */
-export function extractPaymentMethodId(pi: Stripe.PaymentIntent): string | undefined {
+export function extractPaymentMethodId(
+  pi: Stripe.PaymentIntent
+): string | undefined {
   return pi.payment_method
     ? typeof pi.payment_method === 'string'
       ? pi.payment_method
@@ -46,7 +50,9 @@ export function extractPaymentMethodId(pi: Stripe.PaymentIntent): string | undef
 /**
  * Normalize Stripe PaymentIntent into our DB shape
  */
-export function mapStripePIToModel(pi: Stripe.PaymentIntent): PaymentIntentData {
+export function mapStripePIToModel(
+  pi: Stripe.PaymentIntent
+): PaymentIntentData {
   let model: PaymentIntentData = {
     id: pi.id,
     amount: pi.amount,
@@ -76,8 +82,10 @@ export function buildMetadata(
   subscription: ZeusSubscription
 ): ZeusSubscriptionMetadata | undefined {
   const metadata: ZeusSubscriptionMetadata = {};
-  if (subscription.sport_id) metadata.sport_id = subscription.sport_id;
-  if (subscription.team_id) metadata.team_id = subscription.team_id;
+  if (subscription.sport_id != null)
+    metadata.sport_id = subscription.sport_id ?? 0;
+  if (subscription.team_id != null)
+    metadata.team_id = subscription.team_id ?? 0;
   if (subscription.subscription_type)
     metadata.subscription_type = subscription.subscription_type;
   return Object.keys(metadata).length > 0 ? metadata : undefined;
@@ -160,4 +168,3 @@ export async function handleZeusSubscription(
     });
   }
 }
-

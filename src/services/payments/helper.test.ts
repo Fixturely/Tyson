@@ -308,12 +308,15 @@ describe('Payments Helper Functions', () => {
 
       (zeusSubscriptionModel.getZeusSubscriptionByPaymentIntent as jest.Mock) =
         jest.fn().mockResolvedValue(subscription);
-      (zeusSubscriptionModel.updateZeusSubscriptionStatus as jest.Mock) =
-        jest.fn().mockResolvedValue(undefined);
-      (zeusNotificationService.notifyPaymentSucceeded as jest.Mock) =
-        jest.fn().mockResolvedValue(undefined);
-      (zeusSubscriptionModel.markZeusNotified as jest.Mock) =
-        jest.fn().mockResolvedValue(undefined);
+      (zeusSubscriptionModel.updateZeusSubscriptionStatus as jest.Mock) = jest
+        .fn()
+        .mockResolvedValue(undefined);
+      (zeusNotificationService.notifyPaymentSucceeded as jest.Mock) = jest
+        .fn()
+        .mockResolvedValue(undefined);
+      (zeusSubscriptionModel.markZeusNotified as jest.Mock) = jest
+        .fn()
+        .mockResolvedValue(undefined);
 
       const paidAt = new Date();
       await handleZeusSubscription(pi, 'succeeded', paidAt);
@@ -342,10 +345,12 @@ describe('Payments Helper Functions', () => {
 
       (zeusSubscriptionModel.getZeusSubscriptionByPaymentIntent as jest.Mock) =
         jest.fn().mockResolvedValue(subscription);
-      (zeusSubscriptionModel.updateZeusSubscriptionStatus as jest.Mock) =
-        jest.fn().mockResolvedValue(undefined);
-      (zeusNotificationService.notifyPaymentFailed as jest.Mock) =
-        jest.fn().mockResolvedValue(undefined);
+      (zeusSubscriptionModel.updateZeusSubscriptionStatus as jest.Mock) = jest
+        .fn()
+        .mockResolvedValue(undefined);
+      (zeusNotificationService.notifyPaymentFailed as jest.Mock) = jest
+        .fn()
+        .mockResolvedValue(undefined);
 
       await handleZeusSubscription(pi, 'failed');
 
@@ -370,10 +375,12 @@ describe('Payments Helper Functions', () => {
 
       (zeusSubscriptionModel.getZeusSubscriptionByPaymentIntent as jest.Mock) =
         jest.fn().mockResolvedValue(subscription);
-      (zeusSubscriptionModel.updateZeusSubscriptionStatus as jest.Mock) =
-        jest.fn().mockResolvedValue(undefined);
-      (zeusNotificationService.notifyPaymentFailed as jest.Mock) =
-        jest.fn().mockResolvedValue(undefined);
+      (zeusSubscriptionModel.updateZeusSubscriptionStatus as jest.Mock) = jest
+        .fn()
+        .mockResolvedValue(undefined);
+      (zeusNotificationService.notifyPaymentFailed as jest.Mock) = jest
+        .fn()
+        .mockResolvedValue(undefined);
 
       await handleZeusSubscription(pi, 'failed');
 
@@ -399,14 +406,18 @@ describe('Payments Helper Functions', () => {
 
       (zeusSubscriptionModel.getZeusSubscriptionByPaymentIntent as jest.Mock) =
         jest.fn().mockResolvedValue(subscription);
-      (zeusSubscriptionModel.updateZeusSubscriptionStatus as jest.Mock) =
-        jest.fn().mockResolvedValue(undefined);
-      (zeusNotificationService.notifyPaymentCanceled as jest.Mock) =
-        jest.fn().mockResolvedValue(undefined);
+      (zeusSubscriptionModel.updateZeusSubscriptionStatus as jest.Mock) = jest
+        .fn()
+        .mockResolvedValue(undefined);
+      (zeusNotificationService.notifyPaymentCanceled as jest.Mock) = jest
+        .fn()
+        .mockResolvedValue(undefined);
 
       await handleZeusSubscription(pi, 'canceled');
 
-      expect(zeusNotificationService.notifyPaymentCanceled).toHaveBeenCalledWith(
+      expect(
+        zeusNotificationService.notifyPaymentCanceled
+      ).toHaveBeenCalledWith(
         expect.objectContaining({
           error_message: 'duplicate',
         })
@@ -427,10 +438,12 @@ describe('Payments Helper Functions', () => {
 
       (zeusSubscriptionModel.getZeusSubscriptionByPaymentIntent as jest.Mock) =
         jest.fn().mockResolvedValue(subscription);
-      (zeusSubscriptionModel.updateZeusSubscriptionStatus as jest.Mock) =
-        jest.fn().mockResolvedValue(undefined);
-      (zeusNotificationService.notifyPaymentSucceeded as jest.Mock) =
-        jest.fn().mockRejectedValue(new Error('Notification failed'));
+      (zeusSubscriptionModel.updateZeusSubscriptionStatus as jest.Mock) = jest
+        .fn()
+        .mockResolvedValue(undefined);
+      (zeusNotificationService.notifyPaymentSucceeded as jest.Mock) = jest
+        .fn()
+        .mockRejectedValue(new Error('Notification failed'));
 
       // Should not throw - errors are logged but don't propagate
       await handleZeusSubscription(pi, 'succeeded');
@@ -440,4 +453,3 @@ describe('Payments Helper Functions', () => {
     });
   });
 });
-

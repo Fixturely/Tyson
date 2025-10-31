@@ -4,10 +4,7 @@ import { paymentIntentModel } from '../../models/payment_intent';
 import { customerPaymentMethodsModel } from '../../models/customer_payment_methods';
 import { zeusSubscriptionModel } from '../../models/zeus_subscriptions';
 import { zeusNotificationService } from '../notifications';
-import {
-  PaymentsService,
-  PaymentsServiceDependencies,
-} from './controller';
+import { PaymentsService, PaymentsServiceDependencies } from './controller';
 
 // Create default instance with real dependencies
 const stripeInstance = new Stripe(config.stripe.secretKey, {

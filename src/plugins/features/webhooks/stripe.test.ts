@@ -374,34 +374,39 @@ describe('Stripe Webhook Handler', () => {
       },
     ];
 
-    test.each(testCases)('upserts on %s', async ({ eventType, payload, expected }) => {
-      const { paymentIntentModel } = require('../../../models/payment_intent');
-      const StripeLib = require('stripe');
-      const stripeInstance = new StripeLib();
+    test.each(testCases)(
+      'upserts on %s',
+      async ({ eventType, payload, expected }) => {
+        const {
+          paymentIntentModel,
+        } = require('../../../models/payment_intent');
+        const StripeLib = require('stripe');
+        const stripeInstance = new StripeLib();
 
-      stripeInstance.webhooks.constructEvent.mockImplementationOnce(() => ({
-        id: `evt_${payload.id}`,
-        type: eventType,
-        data: {
-          object: {
-            amount: 1000,
-            currency: 'usd',
-            created: 1234567890,
-            ...payload,
+        stripeInstance.webhooks.constructEvent.mockImplementationOnce(() => ({
+          id: `evt_${payload.id}`,
+          type: eventType,
+          data: {
+            object: {
+              amount: 1000,
+              currency: 'usd',
+              created: 1234567890,
+              ...payload,
+            },
           },
-        },
-      }));
+        }));
 
-      const resp = await request(app)
-        .post('/api/v1/webhooks/stripe')
-        .set('stripe-signature', 'valid_signature')
-        .send({});
+        const resp = await request(app)
+          .post('/api/v1/webhooks/stripe')
+          .set('stripe-signature', 'valid_signature')
+          .send({});
 
-      expect(resp.status).toBe(200);
-      expect(paymentIntentModel.upsertPaymentIntent).toHaveBeenCalledWith(
-        expect.objectContaining(expected)
-      );
-    });
+        expect(resp.status).toBe(200);
+        expect(paymentIntentModel.upsertPaymentIntent).toHaveBeenCalledWith(
+          expect.objectContaining(expected)
+        );
+      }
+    );
   });
 
   describe('Payment method persistence rules', () => {

@@ -39,9 +39,7 @@ export class PaymentsService {
    * Handle payment intent succeeded event
    * Persists payment intent, optionally saves payment method, and handles Zeus subscriptions
    */
-  async handlePaymentIntentSucceeded(
-    pi: Stripe.PaymentIntent
-  ): Promise<void> {
+  async handlePaymentIntentSucceeded(pi: Stripe.PaymentIntent): Promise<void> {
     logger.info('Payment intent succeeded', {
       id: pi.id,
       amount: pi.amount,
@@ -123,4 +121,3 @@ export class PaymentsService {
     await handleZeusSubscription(pi, 'canceled');
   }
 }
-

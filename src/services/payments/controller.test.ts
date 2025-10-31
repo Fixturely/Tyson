@@ -52,8 +52,9 @@ describe('PaymentsService', () => {
         object: 'payment_intent',
       } as unknown as Stripe.PaymentIntent;
 
-      (mockDeps.paymentIntentModel.upsertPaymentIntent as jest.Mock) =
-        jest.fn().mockResolvedValue(undefined);
+      (mockDeps.paymentIntentModel.upsertPaymentIntent as jest.Mock) = jest
+        .fn()
+        .mockResolvedValue(undefined);
 
       await service.handlePaymentIntentCreated(pi);
 
@@ -86,10 +87,13 @@ describe('PaymentsService', () => {
         object: 'payment_intent',
       } as unknown as Stripe.PaymentIntent;
 
-      (mockDeps.paymentIntentModel.upsertPaymentIntent as jest.Mock) =
-        jest.fn().mockResolvedValue(undefined);
-      (mockDeps.zeusSubscriptionModel.getZeusSubscriptionByPaymentIntent as jest.Mock) =
-        jest.fn().mockResolvedValue(null);
+      (mockDeps.paymentIntentModel.upsertPaymentIntent as jest.Mock) = jest
+        .fn()
+        .mockResolvedValue(undefined);
+      (mockDeps.zeusSubscriptionModel
+        .getZeusSubscriptionByPaymentIntent as jest.Mock) = jest
+        .fn()
+        .mockResolvedValue(null);
 
       await service.handlePaymentIntentSucceeded(pi);
 
@@ -117,15 +121,20 @@ describe('PaymentsService', () => {
         card: { brand: 'visa', last4: '4242' },
       } as Stripe.PaymentMethod;
 
-      (mockDeps.paymentIntentModel.upsertPaymentIntent as jest.Mock) =
-        jest.fn().mockResolvedValue(undefined);
+      (mockDeps.paymentIntentModel.upsertPaymentIntent as jest.Mock) = jest
+        .fn()
+        .mockResolvedValue(undefined);
       (mockStripe.paymentMethods.retrieve as jest.Mock).mockResolvedValue(
         mockPaymentMethod
       );
-      (mockDeps.customerPaymentMethodsModel.upsertFromStripePaymentMethod as jest.Mock) =
-        jest.fn().mockResolvedValue(undefined);
-      (mockDeps.zeusSubscriptionModel.getZeusSubscriptionByPaymentIntent as jest.Mock) =
-        jest.fn().mockResolvedValue(null);
+      (mockDeps.customerPaymentMethodsModel
+        .upsertFromStripePaymentMethod as jest.Mock) = jest
+        .fn()
+        .mockResolvedValue(undefined);
+      (mockDeps.zeusSubscriptionModel
+        .getZeusSubscriptionByPaymentIntent as jest.Mock) = jest
+        .fn()
+        .mockResolvedValue(null);
 
       await service.handlePaymentIntentSucceeded(pi);
 
@@ -150,10 +159,13 @@ describe('PaymentsService', () => {
         object: 'payment_intent',
       } as unknown as Stripe.PaymentIntent;
 
-      (mockDeps.paymentIntentModel.upsertPaymentIntent as jest.Mock) =
-        jest.fn().mockResolvedValue(undefined);
-      (mockDeps.zeusSubscriptionModel.getZeusSubscriptionByPaymentIntent as jest.Mock) =
-        jest.fn().mockResolvedValue(null);
+      (mockDeps.paymentIntentModel.upsertPaymentIntent as jest.Mock) = jest
+        .fn()
+        .mockResolvedValue(undefined);
+      (mockDeps.zeusSubscriptionModel
+        .getZeusSubscriptionByPaymentIntent as jest.Mock) = jest
+        .fn()
+        .mockResolvedValue(null);
 
       await service.handlePaymentIntentSucceeded(pi);
 
@@ -173,16 +185,21 @@ describe('PaymentsService', () => {
         object: 'payment_intent',
       } as unknown as Stripe.PaymentIntent;
 
-      (mockDeps.paymentIntentModel.upsertPaymentIntent as jest.Mock) =
-        jest.fn().mockResolvedValue(undefined);
+      (mockDeps.paymentIntentModel.upsertPaymentIntent as jest.Mock) = jest
+        .fn()
+        .mockResolvedValue(undefined);
       (mockStripe.paymentMethods.retrieve as jest.Mock).mockRejectedValue(
         new Error('Stripe error')
       );
-      (mockDeps.zeusSubscriptionModel.getZeusSubscriptionByPaymentIntent as jest.Mock) =
-        jest.fn().mockResolvedValue(null);
+      (mockDeps.zeusSubscriptionModel
+        .getZeusSubscriptionByPaymentIntent as jest.Mock) = jest
+        .fn()
+        .mockResolvedValue(null);
 
       // Should not throw
-      await expect(service.handlePaymentIntentSucceeded(pi)).resolves.not.toThrow();
+      await expect(
+        service.handlePaymentIntentSucceeded(pi)
+      ).resolves.not.toThrow();
     });
   });
 
@@ -201,10 +218,13 @@ describe('PaymentsService', () => {
         object: 'payment_intent',
       } as unknown as Stripe.PaymentIntent;
 
-      (mockDeps.paymentIntentModel.upsertPaymentIntent as jest.Mock) =
-        jest.fn().mockResolvedValue(undefined);
-      (mockDeps.zeusSubscriptionModel.getZeusSubscriptionByPaymentIntent as jest.Mock) =
-        jest.fn().mockResolvedValue(null);
+      (mockDeps.paymentIntentModel.upsertPaymentIntent as jest.Mock) = jest
+        .fn()
+        .mockResolvedValue(undefined);
+      (mockDeps.zeusSubscriptionModel
+        .getZeusSubscriptionByPaymentIntent as jest.Mock) = jest
+        .fn()
+        .mockResolvedValue(null);
 
       await service.handlePaymentIntentFailed(pi);
 
@@ -226,10 +246,13 @@ describe('PaymentsService', () => {
         object: 'payment_intent',
       } as unknown as Stripe.PaymentIntent;
 
-      (mockDeps.paymentIntentModel.upsertPaymentIntent as jest.Mock) =
-        jest.fn().mockResolvedValue(undefined);
-      (mockDeps.zeusSubscriptionModel.getZeusSubscriptionByPaymentIntent as jest.Mock) =
-        jest.fn().mockResolvedValue(null);
+      (mockDeps.paymentIntentModel.upsertPaymentIntent as jest.Mock) = jest
+        .fn()
+        .mockResolvedValue(undefined);
+      (mockDeps.zeusSubscriptionModel
+        .getZeusSubscriptionByPaymentIntent as jest.Mock) = jest
+        .fn()
+        .mockResolvedValue(null);
 
       await service.handlePaymentIntentCanceled(pi);
 
@@ -239,4 +262,3 @@ describe('PaymentsService', () => {
     });
   });
 });
-
