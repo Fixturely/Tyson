@@ -104,6 +104,22 @@ export class PaymentIntentModel {
       throw error;
     }
   }
+
+  async upsertPaymentIntent(
+    paymentIntentData: PaymentIntentData
+  ): Promise<void> {
+    try {
+      const { id, ...updateData } = paymentIntentData;
+      await db('payment_intents')
+        .insert(paymentIntentData)
+        .onConflict('id')
+        .merge(updateData);
+      logger.info(`Payment intent upserted: ${id}`);
+    } catch (error) {
+      logger.error(`Error upserting payment intent: ${error}`);
+      throw error;
+    }
+  }
 }
 
 export const paymentIntentModel = new PaymentIntentModel();

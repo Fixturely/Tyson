@@ -11,6 +11,7 @@ import {
   ZeusNotificationData,
   zeusNotificationService,
 } from '../../../services/notifications/zeus';
+import { paymentIntentModel } from '../../../models/payment_intent';
 
 const router = express.Router();
 
@@ -41,6 +42,38 @@ function buildMetadata(
   if (subscription.subscription_type)
     metadata.subscription_type = subscription.subscription_type;
   return Object.keys(metadata).length > 0 ? metadata : undefined;
+}
+
+// Normalize Stripe PaymentIntent into our DB shape
+function mapStripePIToModel(pi: Stripe.PaymentIntent) {
+  const model: any = {
+    id: pi.id,
+    amount: pi.amount,
+    currency: pi.currency,
+    status: pi.status,
+    created: pi.created,
+  };
+
+  const customerId = pi.customer
+    ? typeof pi.customer === 'string'
+      ? pi.customer
+      : pi.customer.id
+    : undefined;
+  if (customerId) model.customer_id = customerId;
+
+  if (pi.description != null) model.description = pi.description;
+  if (pi.metadata != null) model.metadata = pi.metadata;
+
+  const paymentMethod = pi.payment_method
+    ? typeof pi.payment_method === 'string'
+      ? pi.payment_method
+      : pi.payment_method.id
+    : undefined;
+  if (paymentMethod) model.payment_method = paymentMethod;
+
+  if (pi.client_secret != null) model.client_secret = pi.client_secret;
+
+  return model;
 }
 
 // Helper function to handle Zeus subscription processing
@@ -183,14 +216,14 @@ router.post('/', async (req: express.Request, res: express.Response) => {
     switch (event.type) {
       // Payment Intent Events
       case 'payment_intent.created':
-        const paymentIntentCreated = event.data.object as Stripe.PaymentIntent;
+        const pi = event.data.object as Stripe.PaymentIntent;
         logger.info('Payment intent created', {
-          id: paymentIntentCreated.id,
-          amount: paymentIntentCreated.amount,
-          currency: paymentIntentCreated.currency,
-          status: paymentIntentCreated.status,
+          id: pi.id,
+          amount: pi.amount,
+          currency: pi.currency,
+          status: pi.status,
         });
-        // TODO: Store PaymentIntent in database
+        await paymentIntentModel.upsertPaymentIntent(mapStripePIToModel(pi));
         break;
 
       case 'payment_intent.succeeded':
@@ -201,6 +234,10 @@ router.post('/', async (req: express.Request, res: express.Response) => {
           amount: paymentIntentSucceeded.amount,
           currency: paymentIntentSucceeded.currency,
         });
+
+        await paymentIntentModel.upsertPaymentIntent(
+          mapStripePIToModel(paymentIntentSucceeded)
+        );
 
         // If requested at creation time, persist the successful payment method
         try {
@@ -246,6 +283,10 @@ router.post('/', async (req: express.Request, res: express.Response) => {
           code: paymentIntentFailed.last_payment_error?.code,
         });
 
+        await paymentIntentModel.upsertPaymentIntent(
+          mapStripePIToModel(paymentIntentFailed)
+        );
+
         // Handle Zeus subscription if applicable
         await handleZeusSubscription(paymentIntentFailed, 'failed');
         break;
@@ -256,6 +297,10 @@ router.post('/', async (req: express.Request, res: express.Response) => {
           id: paymentIntentCanceled.id,
           reason: paymentIntentCanceled.cancellation_reason,
         });
+
+        await paymentIntentModel.upsertPaymentIntent(
+          mapStripePIToModel(paymentIntentCanceled)
+        );
 
         // Handle Zeus subscription if applicable
         await handleZeusSubscription(paymentIntentCanceled, 'canceled');
