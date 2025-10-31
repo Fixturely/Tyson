@@ -1,6 +1,7 @@
 import logger from '../../utils/logger';
 import config from '../../../config';
 import { computeHMAC } from '../../utils/hmac';
+import { buildZeusNotificationPayload } from './helper';
 
 export interface ZeusNotificationData {
   subscription_id: number;
@@ -22,9 +23,12 @@ export class ZeusNotificationService {
   private zeusWebhookUrl: string;
   private webhookSecret: string;
 
-  constructor() {
+  constructor(webhookUrl?: string, webhookSecret?: string) {
     this.zeusWebhookUrl =
-      config.zeus?.webhookUrl ?? process.env.ZEUS_WEBHOOK_URL ?? '';
+      webhookUrl ??
+      config.zeus?.webhookUrl ??
+      process.env.ZEUS_WEBHOOK_URL ??
+      '';
     if (!this.zeusWebhookUrl) {
       logger.warn(
         'ZEUS_WEBHOOK_URL not configured - notifications will be logged only'
@@ -33,7 +37,7 @@ export class ZeusNotificationService {
       this.zeusWebhookUrl += '/v1/subscriptions/webhook';
     }
 
-    this.webhookSecret = config.zeus?.webhookSecret ?? '';
+    this.webhookSecret = webhookSecret ?? config.zeus?.webhookSecret ?? '';
     if (!this.webhookSecret) {
       logger.warn(
         'ZEUS_WEBHOOK_SECRET not configured - notifications will be unsigned'
@@ -45,18 +49,7 @@ export class ZeusNotificationService {
     notificationData: ZeusNotificationData
   ): Promise<void> {
     try {
-      const payload = {
-        subscription_id: notificationData.subscription_id,
-        user_id: notificationData.user_id,
-        payment_intent_id: notificationData.payment_intent_id,
-        status: notificationData.status,
-        amount: notificationData.amount,
-        currency: notificationData.currency,
-        paid_at: notificationData.paid_at?.toISOString(),
-        error_message: notificationData.error_message,
-        metadata: notificationData.metadata,
-        timestamp: new Date().toISOString(),
-      };
+      const payload = buildZeusNotificationPayload(notificationData);
 
       if (this.zeusWebhookUrl) {
         // Stringify payload once to ensure signature matches body
@@ -132,5 +125,3 @@ export class ZeusNotificationService {
     });
   }
 }
-
-export const zeusNotificationService = new ZeusNotificationService();

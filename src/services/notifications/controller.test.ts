@@ -1,4 +1,4 @@
-import { ZeusNotificationService, ZeusNotificationData } from './zeus';
+import { ZeusNotificationService, ZeusNotificationData } from './controller';
 import logger from '../../utils/logger';
 import config from '../../../config';
 
