@@ -7,6 +7,7 @@ import { webhookEventDbService } from '../../../models/webhook_events';
 import { customerBillingInfoModel } from '../../../models/customer_billing_info';
 import { customerPaymentMethodsModel } from '../../../models/customer_payment_methods';
 import { paymentsService } from '../../../services/payments';
+import { invoicesService } from '../../../services/invoices';
 
 const router = express.Router();
 
@@ -78,6 +79,7 @@ router.post('/', async (req: express.Request, res: express.Response) => {
   try {
     let pi: Stripe.PaymentIntent;
     let charge: Stripe.Charge;
+    let invoice: Stripe.Invoice;
     switch (event.type) {
       // Payment Intent Events
       case 'payment_intent.created': {
@@ -178,15 +180,17 @@ router.post('/', async (req: express.Request, res: express.Response) => {
         break;
 
       // Invoice Events
-      case 'invoice.payment_succeeded':
-        const invoicePaymentSucceeded = event.data.object as Stripe.Invoice;
-        logger.info('Invoice payment succeeded', {
-          id: invoicePaymentSucceeded.id,
-          amount_paid: invoicePaymentSucceeded.amount_paid,
-          subscription: invoicePaymentSucceeded.subscription,
-        });
-        // TODO: Update subscription status, extend service
+      case 'invoice.payment_succeeded': {
+        invoice = event.data.object as Stripe.Invoice;
+        await invoicesService.handleInvoicePaymentSucceeded(invoice);
         break;
+      }
+
+      case 'invoice.payment_failed': {
+        invoice = event.data.object as Stripe.Invoice;
+        await invoicesService.handleInvoicePaymentFailed(invoice);
+        break;
+      }
 
       // Payment Method / SetupIntent Events
       case 'setup_intent.succeeded': {
@@ -245,16 +249,6 @@ router.post('/', async (req: express.Request, res: express.Response) => {
         await customerPaymentMethodsModel.remove(pm.id);
         break;
       }
-
-      case 'invoice.payment_failed':
-        const invoicePaymentFailed = event.data.object as Stripe.Invoice;
-        logger.warn('Invoice payment failed', {
-          id: invoicePaymentFailed.id,
-          amount_due: invoicePaymentFailed.amount_due,
-          subscription: invoicePaymentFailed.subscription,
-        });
-        // TODO: Handle failed subscription payment, send dunning emails
-        break;
 
       // Refund Events
       case 'charge.refunded':
