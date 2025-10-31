@@ -330,122 +330,64 @@ describe('Stripe Webhook Handler', () => {
   });
 
   describe('PaymentIntent persistence', () => {
-    it('upserts on payment_intent.created', async () => {
-      const { paymentIntentModel } = require('../../../models/payment_intent');
-      const StripeLib = require('stripe');
-      const stripeInstance = new StripeLib();
-      stripeInstance.webhooks.constructEvent.mockImplementationOnce(() => ({
-        id: 'evt_pi_created',
-        type: 'payment_intent.created',
-        data: {
-          object: {
-            id: 'pi_created',
-            amount: 1500,
-            currency: 'usd',
-            status: 'requires_payment_method',
-            created: 1234567890,
-            customer: 'cus_abc',
-          },
-        },
-      }));
-
-      const resp = await request(app)
-        .post('/api/v1/webhooks/stripe')
-        .set('stripe-signature', 'valid_signature')
-        .send({});
-
-      expect(resp.status).toBe(200);
-      expect(paymentIntentModel.upsertPaymentIntent).toHaveBeenCalledWith(
-        expect.objectContaining({
+    const testCases = [
+      {
+        eventType: 'payment_intent.created',
+        payload: {
           id: 'pi_created',
           status: 'requires_payment_method',
-        })
-      );
-    });
-
-    it('upserts on payment_intent.succeeded', async () => {
-      const { paymentIntentModel } = require('../../../models/payment_intent');
-      const StripeLib = require('stripe');
-      const stripeInstance = new StripeLib();
-      stripeInstance.webhooks.constructEvent.mockImplementationOnce(() => ({
-        id: 'evt_pi_succeeded',
-        type: 'payment_intent.succeeded',
-        data: {
-          object: {
-            id: 'pi_succeeded',
-            amount: 2000,
-            currency: 'usd',
-            status: 'succeeded',
-            created: 1234567891,
-            customer: 'cus_xyz',
-            payment_method: 'pm_xyz',
-          },
+          customer: 'cus_abc',
         },
-      }));
-
-      const resp = await request(app)
-        .post('/api/v1/webhooks/stripe')
-        .set('stripe-signature', 'valid_signature')
-        .send({});
-
-      expect(resp.status).toBe(200);
-      expect(paymentIntentModel.upsertPaymentIntent).toHaveBeenCalledWith(
-        expect.objectContaining({
+        expected: { id: 'pi_created', status: 'requires_payment_method' },
+      },
+      {
+        eventType: 'payment_intent.succeeded',
+        payload: {
+          id: 'pi_succeeded',
+          status: 'succeeded',
+          customer: 'cus_xyz',
+          payment_method: 'pm_xyz',
+        },
+        expected: {
           id: 'pi_succeeded',
           status: 'succeeded',
           payment_method: 'pm_xyz',
-        })
-      );
-    });
-
-    it('upserts on payment_intent.payment_failed', async () => {
-      const { paymentIntentModel } = require('../../../models/payment_intent');
-      const StripeLib = require('stripe');
-      const stripeInstance = new StripeLib();
-      stripeInstance.webhooks.constructEvent.mockImplementationOnce(() => ({
-        id: 'evt_pi_failed',
-        type: 'payment_intent.payment_failed',
-        data: {
-          object: {
-            id: 'pi_failed',
-            amount: 3000,
-            currency: 'usd',
-            status: 'requires_payment_method',
-            created: 1234567892,
-            customer: 'cus_fff',
-          },
         },
-      }));
-
-      const resp = await request(app)
-        .post('/api/v1/webhooks/stripe')
-        .set('stripe-signature', 'valid_signature')
-        .send({});
-
-      expect(resp.status).toBe(200);
-      expect(paymentIntentModel.upsertPaymentIntent).toHaveBeenCalledWith(
-        expect.objectContaining({
+      },
+      {
+        eventType: 'payment_intent.payment_failed',
+        payload: {
           id: 'pi_failed',
           status: 'requires_payment_method',
-        })
-      );
-    });
+          customer: 'cus_fff',
+        },
+        expected: { id: 'pi_failed', status: 'requires_payment_method' },
+      },
+      {
+        eventType: 'payment_intent.canceled',
+        payload: {
+          id: 'pi_canceled',
+          status: 'canceled',
+          customer: 'cus_can',
+        },
+        expected: { id: 'pi_canceled', status: 'canceled' },
+      },
+    ];
 
-    it('upserts on payment_intent.canceled', async () => {
+    test.each(testCases)('upserts on %s', async ({ eventType, payload, expected }) => {
       const { paymentIntentModel } = require('../../../models/payment_intent');
       const StripeLib = require('stripe');
       const stripeInstance = new StripeLib();
+
       stripeInstance.webhooks.constructEvent.mockImplementationOnce(() => ({
-        id: 'evt_pi_canceled',
-        type: 'payment_intent.canceled',
+        id: `evt_${payload.id}`,
+        type: eventType,
         data: {
           object: {
-            id: 'pi_canceled',
-            amount: 4000,
+            amount: 1000,
             currency: 'usd',
-            status: 'canceled',
-            created: 1234567893,
-            customer: 'cus_can',
+            created: 1234567890,
+            ...payload,
           },
         },
       }));
@@ -457,7 +399,7 @@ describe('Stripe Webhook Handler', () => {
 
       expect(resp.status).toBe(200);
       expect(paymentIntentModel.upsertPaymentIntent).toHaveBeenCalledWith(
-        expect.objectContaining({ id: 'pi_canceled', status: 'canceled' })
+        expect.objectContaining(expected)
       );
     });
   });

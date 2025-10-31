@@ -12,6 +12,7 @@ import {
   zeusNotificationService,
 } from '../../../services/notifications/zeus';
 import { paymentIntentModel } from '../../../models/payment_intent';
+import type { PaymentIntentData } from '../../../models/payment_intent';
 
 const router = express.Router();
 
@@ -45,8 +46,8 @@ function buildMetadata(
 }
 
 // Normalize Stripe PaymentIntent into our DB shape
-function mapStripePIToModel(pi: Stripe.PaymentIntent) {
-  const model: any = {
+function mapStripePIToModel(pi: Stripe.PaymentIntent): PaymentIntentData {
+  let model: PaymentIntentData = {
     id: pi.id,
     amount: pi.amount,
     currency: pi.currency,
@@ -67,7 +68,7 @@ function mapStripePIToModel(pi: Stripe.PaymentIntent) {
   const paymentMethod = pi.payment_method
     ? typeof pi.payment_method === 'string'
       ? pi.payment_method
-      : pi.payment_method.id
+      : (pi.payment_method as Stripe.PaymentMethod).id
     : undefined;
   if (paymentMethod) model.payment_method = paymentMethod;
 
