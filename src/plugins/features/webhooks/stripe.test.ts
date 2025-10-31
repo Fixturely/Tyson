@@ -68,7 +68,7 @@ jest.mock('../../../models/zeus_subscriptions', () => ({
 }));
 
 // Mock Zeus notification service
-jest.mock('../../../services/notifications/zeus', () => ({
+jest.mock('../../../services/notifications', () => ({
   zeusNotificationService: {
     notifyPaymentSucceeded: jest.fn().mockResolvedValue(undefined),
     notifyPaymentFailed: jest.fn().mockResolvedValue(undefined),
