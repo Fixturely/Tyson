@@ -22,6 +22,13 @@ jest.mock('../../../models/customer_payment_methods', () => ({
   },
 }));
 
+// Mock payment intent model
+jest.mock('../../../models/payment_intent', () => ({
+  paymentIntentModel: {
+    upsertPaymentIntent: jest.fn().mockResolvedValue(undefined),
+  },
+}));
+
 // Mock database service
 jest.mock('../../../services/database', () => ({
   default: {
@@ -318,6 +325,81 @@ describe('Stripe Webhook Handler', () => {
           id: 'evt_test_123',
           type: 'payment_intent.succeeded',
         })
+      );
+    });
+  });
+
+  describe('PaymentIntent persistence', () => {
+    const testCases = [
+      {
+        eventType: 'payment_intent.created',
+        payload: {
+          id: 'pi_created',
+          status: 'requires_payment_method',
+          customer: 'cus_abc',
+        },
+        expected: { id: 'pi_created', status: 'requires_payment_method' },
+      },
+      {
+        eventType: 'payment_intent.succeeded',
+        payload: {
+          id: 'pi_succeeded',
+          status: 'succeeded',
+          customer: 'cus_xyz',
+          payment_method: 'pm_xyz',
+        },
+        expected: {
+          id: 'pi_succeeded',
+          status: 'succeeded',
+          payment_method: 'pm_xyz',
+        },
+      },
+      {
+        eventType: 'payment_intent.payment_failed',
+        payload: {
+          id: 'pi_failed',
+          status: 'requires_payment_method',
+          customer: 'cus_fff',
+        },
+        expected: { id: 'pi_failed', status: 'requires_payment_method' },
+      },
+      {
+        eventType: 'payment_intent.canceled',
+        payload: {
+          id: 'pi_canceled',
+          status: 'canceled',
+          customer: 'cus_can',
+        },
+        expected: { id: 'pi_canceled', status: 'canceled' },
+      },
+    ];
+
+    test.each(testCases)('upserts on %s', async ({ eventType, payload, expected }) => {
+      const { paymentIntentModel } = require('../../../models/payment_intent');
+      const StripeLib = require('stripe');
+      const stripeInstance = new StripeLib();
+
+      stripeInstance.webhooks.constructEvent.mockImplementationOnce(() => ({
+        id: `evt_${payload.id}`,
+        type: eventType,
+        data: {
+          object: {
+            amount: 1000,
+            currency: 'usd',
+            created: 1234567890,
+            ...payload,
+          },
+        },
+      }));
+
+      const resp = await request(app)
+        .post('/api/v1/webhooks/stripe')
+        .set('stripe-signature', 'valid_signature')
+        .send({});
+
+      expect(resp.status).toBe(200);
+      expect(paymentIntentModel.upsertPaymentIntent).toHaveBeenCalledWith(
+        expect.objectContaining(expected)
       );
     });
   });
